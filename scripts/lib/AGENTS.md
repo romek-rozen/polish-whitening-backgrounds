@@ -15,6 +15,7 @@ these modules together — never re-implement the same logic inline.
 | `openrouter_client.py` | Single embeddings POST, transient-status classification, 200-but-no-data unwrap, provider routing payload. |
 | `chunk_store.py` | `chunk_NNNN.npy` persistence, resume detection, cost-report I/O, skip-log append. |
 | `zca.py` | Streaming μ / Σ + SVD with optional MRL truncation, meta-json writer. |
+| `chunker.py` | Sentence-aware recursive splitter for v3 paragraph-level pipeline.  Sized in Qwen3 tokens via the same tokenizer.json `tokenizer.py` pulls. |
 
 The top-level scripts (`embed_via_openrouter.py`, `fit_zca.py`) are
 still inlined at the time of writing.  The rewrite to thin wrappers

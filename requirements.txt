@@ -12,3 +12,6 @@ tokenizers>=0.20
 # backgrounds on their own scraped pages.  Not used by the default
 # corpus mix (FineWeb-2 PL ships already-cleaned text).
 trafilatura>=2.0
+# v3 paragraph-level pipeline: sentence-aware splitter with
+# overlapping windows.  Pure Python — no torch / no langchain core.
+langchain-text-splitters>=0.3

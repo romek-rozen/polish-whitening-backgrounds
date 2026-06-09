@@ -18,7 +18,22 @@ Read order for a fresh agent:
 ```
 build_corpus.py  →  data/corpus.parquet
                          │
-                         ▼
+                         ├─ v2 (doc-level, currently shipped)
+                         │       │
+                         │       ▼
+                         │     embed_via_openrouter.py
+                         │
+                         └─ v3 (paragraph-level, planned)
+                                 │
+                                 ▼
+                            build_corpus_chunks.py
+                                 │   data/corpus_chunks_<S>_<O>.parquet
+                                 ▼
+                            embed_via_openrouter.py  (same script,
+                                 │   different --corpus)
+                                 ▼
+                                 …
+
 embed_via_openrouter.py  →  data/chunks_<slug>/chunk_NNNN.npy
                          │   data/manifest_<slug>.jsonl
                          │   data/cost_report_<slug>.json
@@ -31,6 +46,11 @@ index_backgrounds.py     →  REGISTRY.md, registry.json
                          │
 run_full.sh ─────────────┘  orchestrates all four
 ```
+
+The v2 and v3 branches share **everything** downstream of the corpus
+parquet — embed, fit, index, registry.  The only difference is whether
+the parquet rows are docs or chunks.  See [GOTCHAS.md §1](../GOTCHAS.md)
+for why those backgrounds are not interchangeable.
 
 Each step is **idempotent**:
 
@@ -52,6 +72,7 @@ flakes, and refactors: you can stop it anywhere and re-launch
 | Script | Owns |
 |---|---|
 | `build_corpus.py` | HF dataset streaming (wiki + FineWeb-2 PL + oasst), per-source filters, `MIN_DOC_CHARS=500` floor, manifest write, corpus fingerprint. |
+| `build_corpus_chunks.py` | v3 only: read `data/corpus.parquet`, sentence-aware chunk via `lib/chunker.py`, write `data/corpus_chunks_<size>_<overlap>.parquet`.  Output schema is a superset of `corpus.parquet` (adds `doc_sha`, `chunk_idx`) so the rest of the pipeline runs unchanged. |
 | `embed_via_openrouter.py` | The adaptive-batch retry loop. Imports HTTP, tokenizer, persistence from `lib/`. |
 | `fit_zca.py` | Argparse + `lib.zca.fit` + `lib.zca.write_meta`. ~110 lines. |
 | `index_backgrounds.py` | Walk `backgrounds/`, read every `*.meta.json`, write `REGISTRY.md` + `registry.json`. Deterministic — depends only on what's on disk. |
