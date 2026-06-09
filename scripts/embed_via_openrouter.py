@@ -216,7 +216,7 @@ def embed_corpus(
     chunk_size: int = 1000,
     request_timeout: float = 120.0,
     grow_after_successes: int = 16,
-    max_retries_per_batch: int = 6,
+    max_retries_per_batch: int = 15,
     provider_order: list[str] | None = None,
     max_tokens_per_doc: int = 30_000,
     tokenizer_repo: str | None = None,

@@ -48,7 +48,7 @@ MODELS="${MODELS:-$MODELS_DEFAULT}"
 NAME_PREFIX="${NAME_PREFIX:-polish_mixed_50k_v2}"
 START_BATCH="${START_BATCH:-16}"
 MAX_BATCH="${MAX_BATCH:-32}"
-PROVIDER_ORDER="${PROVIDER_ORDER:-nebius,deepinfra}"
+PROVIDER_ORDER="${PROVIDER_ORDER:-nebius,deepinfra,siliconflow}"
 
 # MRL dims to fit per model. Native dim is always included.
 # Override with DIMS_4B / DIMS_8B (space-separated).
