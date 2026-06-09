@@ -45,7 +45,7 @@ fi
 
 MODELS_DEFAULT="qwen/qwen3-embedding-4b qwen/qwen3-embedding-8b"
 MODELS="${MODELS:-$MODELS_DEFAULT}"
-NAME_PREFIX="${NAME_PREFIX:-polish_mixed_50k_v2}"
+NAME_PREFIX="${NAME_PREFIX:-pl_mixed50k_doc}"
 START_BATCH="${START_BATCH:-16}"
 MAX_BATCH="${MAX_BATCH:-32}"
 #   PROVIDER_ORDER — leave empty by default so OpenRouter picks
@@ -97,7 +97,11 @@ for MODEL in $MODELS; do
         DIMS=""
     fi
     for DIM in $DIMS; do
-        NAME="${NAME_PREFIX}_${SHORT}_mrl${DIM}"
+        # Format: <model>_<corpus-tag>_mrl<dim> — model first so a
+        # grep "qwen3_4b_" finds all variants of a model at a glance.
+        # NAME_PREFIX is the corpus+granularity tag in the middle.
+        MODEL_SHORT="$(echo "$SHORT" | tr '-' '_')"   # qwen3-4b → qwen3_4b
+        NAME="${MODEL_SHORT}_${NAME_PREFIX}_mrl${DIM}"
         echo "==> Phase 3: fit ZCA $MODEL  dim=${DIM}  →  backgrounds/${NAME}/"
         $PY scripts/fit_zca.py \
             --chunks "data/chunks_${SLUG}" \

@@ -29,10 +29,22 @@ Different splitters → different Σ → wrong whitening — see
 from __future__ import annotations
 
 import logging
+import re
 
 from .tokenizer import OPENROUTER_TO_HF_TOKENIZER, load_tokenizer
 
 logger = logging.getLogger(__name__)
+
+
+# Leading sentence-end punctuation that the token-aligned overlap
+# sometimes drags into the start of a chunk.  Example: chunk_5 ends
+# "...rok 1918. We wrześniu-październiku..." and the 64-token overlap
+# window starts a few tokens *before* the period, so chunk_6 begins
+# with ". We wrześniu...".  The ". " carries no meaning at the start
+# of a chunk and is just wasted tokens in the embedding.  We strip it
+# (one pass — multiple punctuation marks in a row are vanishingly rare
+# in clean prose).
+_LEADING_SENTENCE_FRAGMENT = re.compile(r"^[\.\,\;\:\!\?\)\]\}\"»]+\s+")
 
 
 # Order matters: recursive fallback tries these top-to-bottom.  We
@@ -43,6 +55,26 @@ logger = logging.getLogger(__name__)
 DEFAULT_SEPARATORS: list[str] = [
     "\n\n", "\n", ". ", "? ", "! ", " ", "",
 ]
+
+
+def strip_overlap_fragments(chunks: list[str]) -> list[str]:
+    """Strip leading sentence-tail fragments left over by token-aligned overlap.
+
+    LangChain's overlap takes the last *N tokens* of the previous chunk
+    verbatim — token boundaries don't care about sentence boundaries,
+    so a chunk often starts with a leftover ``". "`` from the tail of
+    a sentence that ended just before the overlap window opened.
+
+    We only strip from the **second chunk onward** — the first chunk
+    of a doc cannot have overlap leftovers and might legitimately
+    start with punctuation (rare but possible).
+    """
+    if len(chunks) <= 1:
+        return chunks
+    out = [chunks[0]]
+    for ch in chunks[1:]:
+        out.append(_LEADING_SENTENCE_FRAGMENT.sub("", ch))
+    return out
 
 
 def merge_tiny(chunks: list[str], min_chars: int = 100) -> list[str]:
