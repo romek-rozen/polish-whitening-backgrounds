@@ -28,6 +28,13 @@ Licencja: [CC-BY-4.0](LICENSE)
 > sięgnij do historii gita jeśli ich potrzebujesz. Aktualny stan
 > licznika znajdziesz w [`REGISTRY.md`](REGISTRY.md).
 
+> ⚠️ **Granularność ma znaczenie.** Tła są fitowane na **całych
+> dokumentach** (jeden embedding na doc z FineWeb-2 / wiki / oasst).
+> Jeśli Twój indeks retrievalowy trzyma paragrafy lub krótsze
+> kawałki, dopasuj własne tło na korpusie paragrafów — ten sam
+> pipeline. Dlaczego mieszanie granularności po cichu psuje
+> whitening: [GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity).
+
 ## Po co whitening?
 
 Współczesne modele embeddingowe (Qwen3 też) produkują wektory

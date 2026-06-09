@@ -29,6 +29,13 @@ License: [CC-BY-4.0](LICENSE)
 > use git history if you need them. Watch
 > [`REGISTRY.md`](REGISTRY.md) for the live count.
 
+> ⚠️ **Granularity matters.** The backgrounds here are fitted on
+> **whole documents** (one embedding per FineWeb-2 / wiki / oasst
+> doc). If your retrieval index stores paragraphs or chunks instead,
+> fit your own background on a paragraph corpus — same pipeline.
+> See [GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity)
+> for why mixing granularities silently degrades the whitening.
+
 ## Why whitening?
 
 Modern embeddings (Qwen3 included) are **anisotropic**: similarity
