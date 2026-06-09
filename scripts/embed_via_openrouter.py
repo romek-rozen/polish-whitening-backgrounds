@@ -141,17 +141,38 @@ def _post_batch(
     r.raise_for_status()
     body = r.json()
     # OpenRouter occasionally returns HTTP 200 with `{"error": {...}}` instead
-    # of `{"data": [...]}` — typically when a doc exceeds the provider's max
-    # context.  Detect this explicitly so the caller can shrink/skip the batch
-    # rather than retrying the identical request forever.
+    # of `{"data": [...]}`.  Two distinct failure modes hide here:
+    #
+    #   1. Doc exceeds the provider's max context — typically surfaces as a
+    #      40x in the inner body (or no inner code).  Caller should shrink
+    #      and eventually skip.
+    #   2. Provider is overloaded — surfaces as inner `code: 429` (or 5xx)
+    #      with a message like "Model busy, retry later".  This is fully
+    #      transient; shrinking + skipping would silently throw away
+    #      perfectly good documents.
+    #
+    # Inspect the inner `code` and mirror it on the synthesised Response so
+    # the caller's existing TRANSIENT_STATUSES path (backoff + retry,
+    # WITHOUT skipping) triggers for case 2.
     if "data" not in body:
         err = body.get("error") or body
-        # Mirror OpenAI / OR 4xx semantics so the retry/shrink path triggers.
+        inner_code = err.get("code") if isinstance(err, dict) else None
+        # Accept either an int or a numeric string.
+        try:
+            inner_code = int(inner_code) if inner_code is not None else None
+        except (TypeError, ValueError):
+            inner_code = None
+        fake_status = (
+            inner_code
+            if isinstance(inner_code, int) and inner_code in TRANSIENT_STATUSES
+            else 400
+        )
         fake = requests.Response()
-        fake.status_code = 400
+        fake.status_code = fake_status
         fake._content = json.dumps(body).encode()
         raise requests.HTTPError(
-            f"OpenRouter 200-but-no-data: {err}", response=fake
+            f"OpenRouter 200-but-no-data (mapped to HTTP {fake_status}): {err}",
+            response=fake,
         )
     data = body["data"]
     arr = np.array([d["embedding"] for d in data], dtype=np.float32)
