@@ -1,0 +1,159 @@
+{
+  "backgrounds": [
+    {
+      "name": "corpus205_n3155",
+      "dim": 2560,
+      "dim_source": null,
+      "parent_background": null,
+      "embedding_model": "Qwen/Qwen3-Embedding-4B",
+      "language": null,
+      "created_at": "2026-06-08T10:17:17.271351+00:00",
+      "n_fit": 3155,
+      "rank_full": null,
+      "rank_deficient": 574,
+      "top_ev_ratio_pre": 71.89,
+      "eigvals_max": null,
+      "eigvals_min": null,
+      "fit_s": null,
+      "corpus_fingerprint": null,
+      "build_script": null,
+      "path": "models/sitefocus_backgrounds",
+      "meta_path": "models/sitefocus_backgrounds/corpus205_n3155.meta.json",
+      "W_shape": [
+        2560,
+        2560
+      ],
+      "mu_shape": [
+        2560
+      ],
+      "eigvals_shape": [
+        2560
+      ],
+      "size_bytes": 26235264
+    },
+    {
+      "name": "polish_mixed_50k_v1",
+      "dim": 2560,
+      "dim_source": null,
+      "parent_background": null,
+      "embedding_model": "Qwen/Qwen3-Embedding-4B",
+      "language": "pl",
+      "created_at": "2026-06-08T11:29:59.194794+00:00",
+      "n_fit": 45156,
+      "rank_full": 2544,
+      "rank_deficient": 16,
+      "top_ev_ratio_pre": 83.03321075439453,
+      "eigvals_max": 0.025432806462049484,
+      "eigvals_min": 3.843728946240077e-10,
+      "fit_s": null,
+      "corpus_fingerprint": "6cabc5720bd26bd1f318c72ccb39ead7db86b9266ca121fe019300bea8f0c2c4",
+      "build_script": "scripts/build_polish_background.py",
+      "path": "models/sitefocus_backgrounds/polish_mixed_50k_v1",
+      "meta_path": "models/sitefocus_backgrounds/polish_mixed_50k_v1/polish_mixed_50k_v1.meta.json",
+      "W_shape": [
+        2560,
+        2560
+      ],
+      "mu_shape": [
+        2560
+      ],
+      "eigvals_shape": [
+        2560
+      ],
+      "size_bytes": 26235264
+    },
+    {
+      "name": "polish_mixed_50k_v1_mrl1024",
+      "dim": 1024,
+      "dim_source": 2560,
+      "parent_background": "polish_mixed_50k_v1",
+      "embedding_model": "Qwen/Qwen3-Embedding-4B",
+      "language": "pl",
+      "created_at": "2026-06-08T12:23:23.970440+00:00",
+      "n_fit": 45156,
+      "rank_full": 1022,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 38.6880989074707,
+      "eigvals_max": 0.028934340924024582,
+      "eigvals_min": 1.9315657961982424e-09,
+      "fit_s": 4.84,
+      "corpus_fingerprint": "9cf4d64321f3f3683784db4f31606f9e62ac84637293e022ced5ccd9659a45e9",
+      "build_script": "scripts/refit_zca_mrl.py",
+      "path": "models/sitefocus_backgrounds/polish_mixed_50k_v1_mrl1024",
+      "meta_path": "models/sitefocus_backgrounds/polish_mixed_50k_v1_mrl1024/polish_mixed_50k_v1_mrl1024.meta.json",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
+    },
+    {
+      "name": "polish_mixed_50k_v1_mrl1536",
+      "dim": 1536,
+      "dim_source": 2560,
+      "parent_background": "polish_mixed_50k_v1",
+      "embedding_model": "Qwen/Qwen3-Embedding-4B",
+      "language": "pl",
+      "created_at": "2026-06-08T12:23:40.463105+00:00",
+      "n_fit": 45156,
+      "rank_full": 1534,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 54.27278137207031,
+      "eigvals_max": 0.027386873960494995,
+      "eigvals_min": 9.952368928978217e-10,
+      "fit_s": 12.331,
+      "corpus_fingerprint": "65139af3aa30734d16144d6b9a3441f03d5345930581fb01cd64cecb716ddf8a",
+      "build_script": "scripts/refit_zca_mrl.py",
+      "path": "models/sitefocus_backgrounds/polish_mixed_50k_v1_mrl1536",
+      "meta_path": "models/sitefocus_backgrounds/polish_mixed_50k_v1_mrl1536/polish_mixed_50k_v1_mrl1536.meta.json",
+      "W_shape": [
+        1536,
+        1536
+      ],
+      "mu_shape": [
+        1536
+      ],
+      "eigvals_shape": [
+        1536
+      ],
+      "size_bytes": 9449856
+    },
+    {
+      "name": "polish_smoke_1500",
+      "dim": 2560,
+      "dim_source": null,
+      "parent_background": null,
+      "embedding_model": "Qwen/Qwen3-Embedding-4B",
+      "language": "pl",
+      "created_at": "2026-06-08T10:46:03.653642+00:00",
+      "n_fit": 1356,
+      "rank_full": 1347,
+      "rank_deficient": 1213,
+      "top_ev_ratio_pre": 116.76174926757812,
+      "eigvals_max": 0.03548453375697136,
+      "eigvals_min": 5.2291605365126257e-20,
+      "fit_s": null,
+      "corpus_fingerprint": "5628b7c06b0a5fd9c2e7127c0aad3bf7c7c158b3947015917d5b5e4f183c976f",
+      "build_script": "scripts/build_polish_background.py",
+      "path": "models/sitefocus_backgrounds/polish_smoke_1500",
+      "meta_path": "models/sitefocus_backgrounds/polish_smoke_1500/polish_smoke_1500.meta.json",
+      "W_shape": [
+        2560,
+        2560
+      ],
+      "mu_shape": [
+        2560
+      ],
+      "eigvals_shape": [
+        2560
+      ],
+      "size_bytes": 26235264
+    }
+  ]
+}

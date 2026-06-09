@@ -1,0 +1,12 @@
+{
+  "name": "corpus205_n3155",
+  "created_at": "2026-06-08T10:17:17.271351+00:00",
+  "source_run": "results/result_extraction/2026-06-03_00-52-07__pipeline_waterfall_full_test_5k_random",
+  "n_domains": 205,
+  "n_sample": 3155,
+  "embedding_dim": 2560,
+  "embedding_model": "Qwen/Qwen3-Embedding-4B",
+  "rank_deficient_eigvals": 574,
+  "top_ev_ratio_pre": 71.89,
+  "note": "Bootstrap background for single-domain sitefocus runs. Lower the rank deficiency by re-fitting on NKJP / larger corpus."
+}
