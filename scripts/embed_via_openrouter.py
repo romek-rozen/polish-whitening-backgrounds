@@ -118,18 +118,24 @@ def _post_batch(
     texts: list[str],
     timeout: float,
     provider_order: list[str] | None = None,
+    ignore_providers: list[str] | None = None,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     """Single POST. Raises on non-2xx; returns (arr, usage_dict)."""
     payload: dict[str, Any] = {
         "model": model, "input": texts, "encoding_format": "float",
     }
+    provider_block: dict[str, Any] = {}
     if provider_order:
-        # Pin cheap providers first; allow fallback so a single outage
-        # doesn't halt the run.
-        payload["provider"] = {
-            "order": provider_order,
-            "allow_fallbacks": True,
-        }
+        # Pin specific providers first; allow_fallbacks lets the next
+        # cheapest option pick up when the pinned ones are throttled.
+        provider_block["order"] = provider_order
+        provider_block["allow_fallbacks"] = True
+    if ignore_providers:
+        # Hard-exclude providers we don't want any spend going to (e.g.
+        # SiliconFlow, which is ~4× the price of nebius / deepinfra).
+        provider_block["ignore"] = ignore_providers
+    if provider_block:
+        payload["provider"] = provider_block
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -218,6 +224,7 @@ def embed_corpus(
     grow_after_successes: int = 16,
     max_retries_per_batch: int = 15,
     provider_order: list[str] | None = None,
+    ignore_providers: list[str] | None = None,
     max_tokens_per_doc: int = 30_000,
     tokenizer_repo: str | None = None,
 ) -> dict[str, Any]:
@@ -324,6 +331,7 @@ def embed_corpus(
                     session, api_key, model, texts,
                     timeout=request_timeout,
                     provider_order=provider_order,
+                    ignore_providers=ignore_providers,
                 )
                 break
             except requests.HTTPError as e:
@@ -502,6 +510,12 @@ def main(argv: list[str] | None = None) -> int:
              "Empty = let OpenRouter pick. allow_fallbacks=True is always on.",
     )
     ap.add_argument(
+        "--ignore-providers", default="siliconflow",
+        help="CSV of OpenRouter provider slugs to hard-exclude (default: "
+             "'siliconflow', which is ~4× the price of nebius/deepinfra "
+             "for Qwen3-Embedding). Empty string disables the exclusion.",
+    )
+    ap.add_argument(
         "--max-tokens-per-doc", type=int, default=30_000,
         help="Token-precise per-doc cap, enforced with the model's own "
              "tokenizer pulled from HF.  Default 30 000 leaves ~2k margin "
@@ -533,6 +547,10 @@ def main(argv: list[str] | None = None) -> int:
         [p.strip() for p in args.provider_order.split(",") if p.strip()]
         if args.provider_order else None
     )
+    ignore_providers = (
+        [p.strip() for p in args.ignore_providers.split(",") if p.strip()]
+        if args.ignore_providers else None
+    )
     embed_corpus(
         out_dir=args.out,
         corpus_path=args.corpus,
@@ -544,6 +562,7 @@ def main(argv: list[str] | None = None) -> int:
         chunk_size=args.chunk_size,
         request_timeout=args.timeout,
         provider_order=provider_order,
+        ignore_providers=ignore_providers,
         max_tokens_per_doc=args.max_tokens_per_doc,
         tokenizer_repo=(args.tokenizer_repo or None),
     )

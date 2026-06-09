@@ -48,7 +48,11 @@ MODELS="${MODELS:-$MODELS_DEFAULT}"
 NAME_PREFIX="${NAME_PREFIX:-polish_mixed_50k_v2}"
 START_BATCH="${START_BATCH:-16}"
 MAX_BATCH="${MAX_BATCH:-32}"
-PROVIDER_ORDER="${PROVIDER_ORDER:-nebius,deepinfra,siliconflow}"
+#   PROVIDER_ORDER — leave empty by default so OpenRouter picks
+#   whichever cheap provider is available right now.  Pin explicitly
+#   (e.g. "nebius,deepinfra") if you specifically want to avoid
+#   SiliconFlow, which is ~4× the price.
+PROVIDER_ORDER="${PROVIDER_ORDER:-}"
 
 # MRL dims to fit per model. Native dim is always included.
 # Override with DIMS_4B / DIMS_8B (space-separated).
