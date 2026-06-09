@@ -138,37 +138,40 @@ Re-run `scripts/fit_zca.py` against the embedding chunks — see
 [Rebuild from scratch](#rebuild-from-scratch-or-fit-your-own-model)
 below.
 
-## MRL-truncated refits
+## MRL-truncated backgrounds
 
 Both Qwen3-Embedding-4B and 8B are Matryoshka Representation Learning
 models — the first `N < D` components of every vector form a valid
-embedding by themselves (after L2 renorm). MRL-truncated backgrounds
-are ZCA refits on those truncated + renormalised vectors, so the
-whitening transform matches what your pipeline actually sees at
-inference. **None ship in this repo by default**; produce one in
-seconds from the stored embedding chunks:
+embedding by themselves (after L2 renorm). For each model this repo
+ships a separate ZCA refit at every commonly-used `N`, so the
+whitening matches what your pipeline actually feeds the index at
+inference:
 
-```bash
-python scripts/fit_zca.py \
-  --chunks data/chunks_qwen_qwen3-embedding-4b \
-  --name polish_mixed_50k_v1_qwen3-4b_mrl1024 \
-  --model qwen/qwen3-embedding-4b \
-  --truncate-to 1024
-```
+| Model | Native dim | MRL refits shipped |
+|---|---:|---|
+| Qwen3-Embedding-4B | 2560 | `mrl{2560, 1536, 1024, 768, 512}` |
+| Qwen3-Embedding-8B | 4096 | `mrl{4096, 3072, 2048, 1024, 768, 512}` |
 
-Then pair the resulting background only with vectors sliced +
-renormalised the same way:
+Pair each one only with vectors sliced + renormalised the same way:
 
 ```python
 x_full = embed("...")                     # (2560,) from Qwen3-4B
-x_1024 = x_full[:1024]
-x_1024 /= np.linalg.norm(x_1024)
-bg = load_background("polish_mixed_50k_v1_qwen3-4b_mrl1024")
+x_1024 = x_full[:1024]                    # MRL slice
+x_1024 /= np.linalg.norm(x_1024)          # renorm to unit L2
+bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
 x_white = bg.apply(x_1024[None])[0]       # whitened in MRL-1024 space
 ```
 
 Mixing MRL-1024 vectors with a full-dim background is undefined — the
-means / covariance are not compatible.
+means / covariance are not compatible. Likewise `mrl1024` from the 4B
+background does **not** interchange with `mrl1024` from the 8B
+background even though the shapes match — the underlying statistics
+differ.
+
+Need a non-shipping dim (e.g. 256, or 2048 against 4B)? Refit in
+seconds against the stored embedding chunks — the recipe is in
+[Rebuild from scratch](#rebuild-from-scratch-or-fit-your-own-model)
+below.
 
 ## Provenance
 

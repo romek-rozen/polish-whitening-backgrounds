@@ -142,37 +142,40 @@ Uruchom `scripts/fit_zca.py` na zapisanych chunkach — patrz
 [Zbudować od zera](#zbudować-od-zera-lub-dopasować-dla-własnego-modelu)
 poniżej.
 
-## Refity MRL
+## Tła MRL
 
 Zarówno Qwen3-Embedding-4B jak i 8B to modele trenowane z Matryoshka
 Representation Learning — pierwsze `N < D` komponentów każdego wektora
-stanowi sam w sobie poprawny embedding (po L2-renormalizacji). Tła
-MRL to refit ZCA na takich obciętych + renormalizowanych wektorach,
-więc transformacja whiteningu zgadza się z tym co Twój pipeline
-faktycznie widzi przy inferencji. **W repo domyślnie żadnego MRL nie
-ma**; możesz wygenerować w kilka sekund z zapisanych chunków:
+stanowi sam w sobie poprawny embedding (po L2-renormalizacji). Dla
+każdego modelu repo ma osobny refit ZCA dla wszystkich popularnych
+`N`, więc whitening zgadza się z tym co Twój pipeline faktycznie
+podaje do indeksu przy inferencji:
 
-```bash
-python scripts/fit_zca.py \
-  --chunks data/chunks_qwen_qwen3-embedding-4b \
-  --name polish_mixed_50k_v1_qwen3-4b_mrl1024 \
-  --model qwen/qwen3-embedding-4b \
-  --truncate-to 1024
-```
+| Model | Wymiar natywny | Dostępne refity MRL |
+|---|---:|---|
+| Qwen3-Embedding-4B | 2560 | `mrl{2560, 1536, 1024, 768, 512}` |
+| Qwen3-Embedding-8B | 4096 | `mrl{4096, 3072, 2048, 1024, 768, 512}` |
 
-Następnie łącz takie tło **wyłącznie** z wektorami sliced +
-renormalised w ten sam sposób:
+Łącz każde z nich **wyłącznie** z wektorami sliced + renormalised w
+ten sam sposób:
 
 ```python
 x_full = embed("...")                     # (2560,) z Qwen3-4B
-x_1024 = x_full[:1024]
-x_1024 /= np.linalg.norm(x_1024)
-bg = load_background("polish_mixed_50k_v1_qwen3-4b_mrl1024")
+x_1024 = x_full[:1024]                    # MRL slice
+x_1024 /= np.linalg.norm(x_1024)          # renorm do unit L2
+bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
 x_white = bg.apply(x_1024[None])[0]       # wybielenie w przestrzeni MRL-1024
 ```
 
 Mieszanie wektorów MRL-1024 z tłem pełnowymiarowym jest niezdefiniowane
-— średnie / kowariancje nie są kompatybilne.
+— średnie / kowariancje nie są kompatybilne. Podobnie `mrl1024` z tła
+4B **nie** jest wymienne z `mrl1024` z tła 8B mimo że kształty się
+zgadzają — bazowe statystyki są zupełnie inne.
+
+Potrzebujesz wymiaru którego nie dostarczamy (np. 256, albo 2048 dla
+4B)? Refit zajmuje kilka sekund na zapisanych chunkach — przepis w
+[Zbudować od zera](#zbudować-od-zera-lub-dopasować-dla-własnego-modelu)
+poniżej.
 
 ## Pochodzenie danych
 
