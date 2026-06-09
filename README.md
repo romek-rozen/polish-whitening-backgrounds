@@ -9,14 +9,44 @@ or [`Qwen/Qwen3-Embedding-8B`](https://huggingface.co/Qwen/Qwen3-Embedding-8B)
 on Polish text. Skip the corpus sampling, the 45k embeddings, and the
 ZCA SVD — clone, load, apply.
 
-Backgrounds in this repo: **2**  ·  License: [CC-BY-4.0](LICENSE)
+Backgrounds in this repo: **11**  ·  License: [CC-BY-4.0](LICENSE)
 
-> **Heads-up (2026-06-09):** the repo was wiped and rebuilt on a fresh
-> 45 156-doc Polish mix with token-precise (not char-cap) truncation
-> under Qwen3's 32k context. The previous 5 backgrounds
-> (`polish_mixed_50k_v1{,_mrl1024,_mrl1536}`, `corpus205_n3155`,
-> `polish_smoke_1500`) are gone from `main`. Use git history if you
+> **Heads-up (2026-06-09):** corpus rebuilt as **v2** — wiki 22.5k +
+> FineWeb-2 PL 22.5k + oasst ~42 = 45 042 docs, paragraph-only (≥500
+> chars), token-precise truncation under Qwen3's 32k context. The
+> earlier `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`, `corpus205_n3155`
+> and `polish_smoke_1500` are gone from `main`. Use git history if you
 > need them.
+
+## Why whitening?
+
+Modern embeddings (Qwen3 included) are **anisotropic**: similarity
+scores are biased toward a few dominant directions in the vector
+space, which makes cosine distance crowded — most pairs look
+"similar" even when they aren't. Concretely, on this corpus the
+ratio of the top eigenvalue of the embedding covariance to the mean
+eigenvalue is **~50–100×** (vs. ~1× for an ideal isotropic
+distribution).
+
+A **ZCA whitening transform** rebalances the space:
+
+```
+x_white = (x - μ) @ W       where  Σ = U S Uᵀ,
+                                   W = U · diag(1 / √(S + ε)) · Uᵀ
+```
+
+After applying it, every direction carries comparable variance and
+cosine distance behaves much closer to the textbook ideal. In
+retrieval that typically translates into:
+
+- meaningfully better **recall@k** on hard polysemy / topic-cluster
+  queries, especially with short queries against longer documents,
+- much cleaner **clustering / dedup** signals — the "top eigenvalue
+  monoculture" stops pulling unrelated docs together,
+- a fix for the well-known **"all cosines look like 0.7"** problem.
+
+You only need this once per (model, corpus, language) combination
+— hence pre-fitting and shipping it as a static artefact.
 
 ## Quick start
 
@@ -29,11 +59,15 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
-# ['polish_mixed_50k_v1_qwen3-4b_nocap', 'polish_mixed_50k_v1_qwen3-8b_nocap']
+# ['polish_mixed_50k_v2_qwen3-4b_mrl2560',
+#  'polish_mixed_50k_v2_qwen3-4b_mrl1536',  '..._mrl1024', '..._mrl768', '..._mrl512',
+#  'polish_mixed_50k_v2_qwen3-8b_mrl4096',
+#  'polish_mixed_50k_v2_qwen3-8b_mrl3072',  '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512']
 
-bg = load_background("polish_mixed_50k_v1_qwen3-4b_nocap")
+# Pair the background with the model + slice dimension you actually use.
+bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
 print(bg.dim, bg.W.shape, bg.mu.shape)
-# 2560 (2560, 2560) (2560,)
+# 1024 (1024, 1024) (1024,)
 
 # Whiten a batch of L2-normalised Qwen3 embeddings.
 import numpy as np
@@ -44,6 +78,49 @@ x_white = bg.apply(x)         # equivalent to (x - bg.mu) @ bg.W
 
 The only runtime dependency is `numpy`. No `git lfs`, no external
 downloads — every artefact is committed to the repo.
+
+## End-to-end: use in a retrieval pipeline
+
+This is the actual cosine-retrieval flow you'd run in production
+against a Qwen3-4B index. The whitening step slots in **right after
+the L2 renorm, before the dot product** — nothing else changes.
+
+```python
+import numpy as np
+from loader import load_background
+# Whatever you already use to call Qwen3 — locally, vLLM, OpenRouter, etc.
+from your_pipeline import embed_qwen3_4b
+
+# 1. Load once at startup.
+bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
+
+def encode(texts):
+    """Embed → MRL slice → L2 renorm → ZCA whiten."""
+    x = embed_qwen3_4b(texts)             # (n, 2560) float32
+    x = x[:, :bg.dim]                     # MRL slice to 1024
+    x /= np.linalg.norm(x, axis=1, keepdims=True) + 1e-12
+    return bg.apply(x)                    # (n, 1024) whitened
+
+# 2. Index your documents once.
+doc_vecs = encode(documents)              # (N, 1024)
+
+# 3. At query time, encode the query the same way.
+q_vec = encode([query])                   # (1, 1024)
+scores = q_vec @ doc_vecs.T               # (1, N) cosine, post-whitening
+topk = np.argpartition(-scores[0], 10)[:10]
+```
+
+What matters in this pattern:
+
+- **Whiten both sides identically** — query vectors and doc vectors must
+  go through the same `bg.apply`. Mixing whitened and raw vectors gives
+  meaningless scores.
+- **Pair (model, dim, background)** — `mrl1024` from the 4B background
+  only matches 4B embeddings sliced to 1024. The 8B's `mrl1024` looks
+  the same in shape but the statistics behind μ and Σ are different.
+- **The transform is exact and lossless at full dim** — `bg.apply` is a
+  rotation + per-axis scaling; it doesn't drop information, it just
+  redistributes variance across axes.
 
 ## Picking a background
 

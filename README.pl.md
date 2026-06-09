@@ -9,14 +9,47 @@ lub [`Qwen/Qwen3-Embedding-8B`](https://huggingface.co/Qwen/Qwen3-Embedding-8B)
 na tekstach polskich. Oszczędzasz sobie próbkowanie korpusu, 45k
 embeddingów i ZCA SVD — klonujesz, ładujesz, używasz.
 
-Liczba teł w repo: **2**  ·  Licencja: [CC-BY-4.0](LICENSE)
+Liczba teł w repo: **11**  ·  Licencja: [CC-BY-4.0](LICENSE)
 
-> **Uwaga (2026-06-09):** repo zostało wyczyszczone i przebudowane na
-> świeżej próbce 45 156 polskich dokumentów z precyzyjnym obcinaniem
-> po tokenach (zamiast char-cap) pod oknem kontekstu 32k Qwen3.
-> Poprzednie 5 teł (`polish_mixed_50k_v1{,_mrl1024,_mrl1536}`,
-> `corpus205_n3155`, `polish_smoke_1500`) zostało usuniętych z `main`.
+> **Uwaga (2026-06-09):** korpus przebudowany jako **v2** — wiki 22.5k
+> + FineWeb-2 PL 22.5k + oasst ~42 = 45 042 dokumentów, tylko akapity
+> (≥500 znaków), precyzyjne obcinanie po tokenach pod oknem 32k Qwen3.
+> Wcześniejsze `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`,
+> `corpus205_n3155`, `polish_smoke_1500` zostały usunięte z `main`.
 > Sięgnij do historii gita jeśli ich potrzebujesz.
+
+## Po co whitening?
+
+Współczesne modele embeddingowe (Qwen3 też) produkują wektory
+**anizotropowe** — podobieństwo cosinusowe jest skoszone w stronę
+kilku dominujących kierunków w przestrzeni, przez co dystans cosinusowy
+robi się ciasny: większość par wygląda na "podobne" nawet gdy w
+rzeczywistości nie są. Konkretnie na naszym korpusie stosunek
+największej wartości własnej kowariancji embeddingów do średniej
+to **~50–100×** (vs. ~1× dla idealnego rozkładu izotropowego).
+
+**Transformacja ZCA whitening** przywraca równowagę przestrzeni:
+
+```
+x_white = (x - μ) @ W       gdzie  Σ = U S Uᵀ,
+                                   W = U · diag(1 / √(S + ε)) · Uᵀ
+```
+
+Po jej zastosowaniu każdy kierunek niesie porównywalną wariancję, a
+dystans cosinusowy zachowuje się znacznie bliżej teoretycznego ideału.
+W retrievalu zwykle przekłada się to na:
+
+- realnie lepsze **recall@k** na trudnych zapytaniach z polisemią /
+  klastrami tematycznymi, zwłaszcza przy krótkich query na długie
+  dokumenty,
+- znacznie czystsze sygnały do **klasteryzacji / deduplikacji** —
+  "monokultura top eigenvalue" przestaje sklejać niepowiązanych
+  dokumentów,
+- naprawę dobrze znanego problemu **"wszystkie cosinusy wyglądają jak
+  0.7"**.
+
+Robi się to tylko raz na kombinację (model, korpus, język) — stąd
+pre-fitting i dystrybucja jako statycznego artefaktu.
 
 ## Szybki start
 
@@ -29,11 +62,15 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
-# ['polish_mixed_50k_v1_qwen3-4b_nocap', 'polish_mixed_50k_v1_qwen3-8b_nocap']
+# ['polish_mixed_50k_v2_qwen3-4b_mrl2560',
+#  'polish_mixed_50k_v2_qwen3-4b_mrl1536',  '..._mrl1024', '..._mrl768', '..._mrl512',
+#  'polish_mixed_50k_v2_qwen3-8b_mrl4096',
+#  'polish_mixed_50k_v2_qwen3-8b_mrl3072',  '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512']
 
-bg = load_background("polish_mixed_50k_v1_qwen3-4b_nocap")
+# Dopasuj tło do faktycznie używanej kombinacji (model + slice wymiaru).
+bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
 print(bg.dim, bg.W.shape, bg.mu.shape)
-# 2560 (2560, 2560) (2560,)
+# 1024 (1024, 1024) (1024,)
 
 # Wybielanie batcha L2-znormalizowanych embeddingów Qwen3.
 import numpy as np
@@ -44,6 +81,49 @@ x_white = bg.apply(x)         # równoważne (x - bg.mu) @ bg.W
 
 Jedyną zależnością runtime jest `numpy`. Bez `git lfs`, bez
 zewnętrznych pobrań — każdy plik leży wprost w repo.
+
+## End-to-end: użycie w pipelinie retrievalu
+
+Tak wygląda realny przepływ cosinusowego retrievalu w produkcji na
+indeksie Qwen3-4B. Krok whiteningu wpada **zaraz po L2-renormalizacji,
+przed dot-productem** — reszta pipeline'u nie zmienia się ani trochę.
+
+```python
+import numpy as np
+from loader import load_background
+# Cokolwiek już używasz do Qwen3 — lokalnie, vLLM, OpenRouter itp.
+from your_pipeline import embed_qwen3_4b
+
+# 1. Załaduj raz na starcie.
+bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
+
+def encode(texts):
+    """Embed → MRL slice → L2 renorm → ZCA whiten."""
+    x = embed_qwen3_4b(texts)             # (n, 2560) float32
+    x = x[:, :bg.dim]                     # MRL slice do 1024
+    x /= np.linalg.norm(x, axis=1, keepdims=True) + 1e-12
+    return bg.apply(x)                    # (n, 1024) po whiteningu
+
+# 2. Zaindeksuj dokumenty raz.
+doc_vecs = encode(documents)              # (N, 1024)
+
+# 3. Przy zapytaniu enkoduj query tak samo.
+q_vec = encode([query])                   # (1, 1024)
+scores = q_vec @ doc_vecs.T               # (1, N) cosine, po whiteningu
+topk = np.argpartition(-scores[0], 10)[:10]
+```
+
+Co jest ważne w tym wzorcu:
+
+- **Wybielaj obie strony identycznie** — wektory query i wektory
+  dokumentów muszą przejść przez ten sam `bg.apply`. Mieszanie
+  wybielonych i surowych daje bezsensowne wyniki.
+- **Para (model, wymiar, tło)** — `mrl1024` z tła 4B pasuje wyłącznie
+  do embeddingów 4B obciętych do 1024. `mrl1024` z 8B ma ten sam kształt,
+  ale statystyki μ i Σ są zupełnie inne.
+- **Transformacja jest dokładna i bezstratna przy pełnym wymiarze** —
+  `bg.apply` to obrót + skalowanie per-oś; nie wyrzuca informacji,
+  tylko przerozdziela wariancję na osie.
 
 ## Które tło wybrać?
 
