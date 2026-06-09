@@ -260,7 +260,7 @@ What each script does:
 
 | Script | Purpose |
 |---|---|
-| `scripts/build_corpus.py` | Sample the Polish mix (wiki + mc4 + klej + oasst) with seed=42. Writes `data/corpus.parquet`. Default: no per-doc cap. |
+| `scripts/build_corpus.py` | Sample the Polish mix (wiki + FineWeb-2 PL + oasst) with seed=42 and a 500-char paragraph floor. Writes `data/corpus.parquet`. Default: no upper cap. |
 | `scripts/embed_via_openrouter.py` | Embed `corpus.parquet` via OpenRouter. Pre-flight token-precise truncation under the model's context window (default 30 000 tokens via the Qwen3 tokenizer pulled from HF — overridable with `--max-tokens-per-doc` and `--tokenizer-repo`). Adaptive batch (starts at 16, halves on 429/5xx, grows back after success streaks). Idempotent: resumes from the highest existing chunk. Writes `data/chunks_<slug>/*.npy` and a per-call `cost_report_<slug>.json`. |
 | `scripts/fit_zca.py` | Two streaming passes (μ, Σ) over chunks + SVD. Writes `backgrounds/<name>/{W_A.npy, mu_A.npy, eigvals_A.npy, *.meta.json}`. |
 | `scripts/index_backgrounds.py` | Regenerate `REGISTRY.md` + `registry.json`. Called by `run_full.sh`. |

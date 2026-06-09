@@ -264,7 +264,7 @@ Co robi każdy skrypt:
 
 | Skrypt | Zastosowanie |
 |---|---|
-| `scripts/build_corpus.py` | Próbkuje mix polski (wiki + mc4 + klej + oasst) z seed=42. Zapisuje `data/corpus.parquet`. Default: brak capa. |
+| `scripts/build_corpus.py` | Próbkuje mix polski (wiki + FineWeb-2 PL + oasst) z seed=42 i progiem 500 znaków na akapit. Zapisuje `data/corpus.parquet`. Default: brak górnego capa. |
 | `scripts/embed_via_openrouter.py` | Embedduje `corpus.parquet` przez OpenRouter. Wstępne, precyzyjne obcinanie po tokenach pod okno kontekstu modelu (domyślnie 30 000 tokenów, tokenizer Qwen3 pobierany z HF — zmiana przez `--max-tokens-per-doc` i `--tokenizer-repo`). Adaptacyjny batch (start 16, połowa przy 429/5xx, rośnie po seriach sukcesów). Idempotentny: resume z najwyższego istniejącego chunka. Pisze `data/chunks_<slug>/*.npy` plus per-call `cost_report_<slug>.json`. |
 | `scripts/fit_zca.py` | Dwa streamingowe pass-y (μ, Σ) po chunkach + SVD. Pisze `backgrounds/<name>/{W_A.npy, mu_A.npy, eigvals_A.npy, *.meta.json}`. |
 | `scripts/index_backgrounds.py` | Regeneruje `REGISTRY.md` + `registry.json`. Wywoływane przez `run_full.sh`. |
