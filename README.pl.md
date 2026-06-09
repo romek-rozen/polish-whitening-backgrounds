@@ -9,24 +9,35 @@ lub [`Qwen/Qwen3-Embedding-8B`](https://huggingface.co/Qwen/Qwen3-Embedding-8B)
 na tekstach polskich. Oszczędzasz sobie próbkowanie korpusu, 45k
 embeddingów i ZCA SVD — klonujesz, ładujesz, używasz.
 
-Liczba teł w repo: **11**  ·  Licencja: [CC-BY-4.0](LICENSE)
+Licencja: [CC-BY-4.0](LICENSE)
 
-> **Uwaga (2026-06-09):** korpus przebudowany jako **v2** — wiki 22.5k
-> + FineWeb-2 PL 22.5k + oasst ~42 = 45 042 dokumentów, tylko akapity
-> (≥500 znaków), precyzyjne obcinanie po tokenach pod oknem 32k Qwen3.
-> Wcześniejsze `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`,
-> `corpus205_n3155`, `polish_smoke_1500` zostały usunięte z `main`.
-> Sięgnij do historii gita jeśli ich potrzebujesz.
+> **🚧 Trwa przebudowa (2026-06-09).**
+> `backgrounds/` jest **teraz pusty na `main`** — korpus v2
+> (wiki 22.5k + FineWeb-2 PL 22.5k + oasst ~42 = 45 042 dokumentów,
+> tylko akapity ≥500 znaków, precyzyjne obcinanie po tokenach pod
+> oknem 32k Qwen3) jest embeddowany przeciw obu modelom Qwen3-Embedding
+> przez OpenRouter. Po zakończeniu repo będzie dostarczać **11 teł**:
+>
+> | Model | Wymiar → nazwa |
+> |---|---|
+> | Qwen3-Embedding-4B | `polish_mixed_50k_v2_qwen3-4b_mrl{2560, 1536, 1024, 768, 512}` |
+> | Qwen3-Embedding-8B | `polish_mixed_50k_v2_qwen3-8b_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+>
+> Poprzednie `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`,
+> `corpus205_n3155` i `polish_smoke_1500` zostały usunięte z `main` —
+> sięgnij do historii gita jeśli ich potrzebujesz. Aktualny stan
+> licznika znajdziesz w [`REGISTRY.md`](REGISTRY.md).
 
 ## Po co whitening?
 
 Współczesne modele embeddingowe (Qwen3 też) produkują wektory
 **anizotropowe** — podobieństwo cosinusowe jest skoszone w stronę
-kilku dominujących kierunków w przestrzeni, przez co dystans cosinusowy
-robi się ciasny: większość par wygląda na "podobne" nawet gdy w
-rzeczywistości nie są. Konkretnie na naszym korpusie stosunek
+kilku dominujących kierunków w przestrzeni, przez co dystans
+cosinusowy robi się ciasny: większość par wygląda na "podobne" nawet
+gdy w rzeczywistości nie są. Na tym polskim korpusie stosunek
 największej wartości własnej kowariancji embeddingów do średniej
-to **~50–100×** (vs. ~1× dla idealnego rozkładu izotropowego).
+mierzy się w dziesiątkach (vs. ~1× dla idealnego rozkładu
+izotropowego).
 
 **Transformacja ZCA whitening** przywraca równowagę przestrzeni:
 
@@ -36,8 +47,8 @@ x_white = (x - μ) @ W       gdzie  Σ = U S Uᵀ,
 ```
 
 Po jej zastosowaniu każdy kierunek niesie porównywalną wariancję, a
-dystans cosinusowy zachowuje się znacznie bliżej teoretycznego ideału.
-W retrievalu zwykle przekłada się to na:
+dystans cosinusowy zachowuje się znacznie bliżej teoretycznego
+ideału. W retrievalu zwykle przekłada się to na:
 
 - realnie lepsze **recall@k** na trudnych zapytaniach z polisemią /
   klastrami tematycznymi, zwłaszcza przy krótkich query na długie
@@ -45,8 +56,8 @@ W retrievalu zwykle przekłada się to na:
 - znacznie czystsze sygnały do **klasteryzacji / deduplikacji** —
   "monokultura top eigenvalue" przestaje sklejać niepowiązanych
   dokumentów,
-- naprawę dobrze znanego problemu **"wszystkie cosinusy wyglądają jak
-  0.7"**.
+- naprawę dobrze znanego problemu **"wszystkie cosinusy wyglądają
+  jak 0.7"**.
 
 Robi się to tylko raz na kombinację (model, korpus, język) — stąd
 pre-fitting i dystrybucja jako statycznego artefaktu.
@@ -62,6 +73,7 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
+# Po skończeniu przebudowy zwróci 11 nazw:
 # ['polish_mixed_50k_v2_qwen3-4b_mrl2560',
 #  'polish_mixed_50k_v2_qwen3-4b_mrl1536',  '..._mrl1024', '..._mrl768', '..._mrl512',
 #  'polish_mixed_50k_v2_qwen3-8b_mrl4096',
@@ -80,7 +92,8 @@ x_white = bg.apply(x)         # równoważne (x - bg.mu) @ bg.W
 ```
 
 Jedyną zależnością runtime jest `numpy`. Bez `git lfs`, bez
-zewnętrznych pobrań — każdy plik leży wprost w repo.
+zewnętrznych pobrań — po skończeniu przebudowy każdy plik będzie
+leżał wprost w repo.
 
 ## End-to-end: użycie w pipelinie retrievalu
 
@@ -119,35 +132,18 @@ Co jest ważne w tym wzorcu:
   dokumentów muszą przejść przez ten sam `bg.apply`. Mieszanie
   wybielonych i surowych daje bezsensowne wyniki.
 - **Para (model, wymiar, tło)** — `mrl1024` z tła 4B pasuje wyłącznie
-  do embeddingów 4B obciętych do 1024. `mrl1024` z 8B ma ten sam kształt,
-  ale statystyki μ i Σ są zupełnie inne.
-- **Transformacja jest dokładna i bezstratna przy pełnym wymiarze** —
-  `bg.apply` to obrót + skalowanie per-oś; nie wyrzuca informacji,
-  tylko przerozdziela wariancję na osie.
-
-## Które tło wybrać?
-
-| Kiedy | Wybierz | Wymiar |
-|---|---|---:|
-| Qwen3-Embedding-4B, natywny | `polish_mixed_50k_v1_qwen3-4b_nocap` | 2560 |
-| Qwen3-Embedding-8B, natywny | `polish_mixed_50k_v1_qwen3-8b_nocap` | 4096 |
-
-Pełna tabela z `n_fit`, deficytem rangi, stosunkiem największej do
-średniej wartości własnej i datą fitu znajduje się w
-[`REGISTRY.md`](REGISTRY.md). Te same dane w
-[`registry.json`](registry.json) gdy ładujesz programowo.
-
-Potrzebujesz wersji MRL (np. 1024 lub 1536 wymiarów dla 4B)?
-Uruchom `scripts/fit_zca.py` na zapisanych chunkach — patrz
-[Zbudować od zera](#zbudować-od-zera-lub-dopasować-dla-własnego-modelu)
-poniżej.
+  do embeddingów 4B obciętych do 1024. `mrl1024` z 8B ma ten sam
+  kształt ale statystyki μ i Σ są zupełnie inne — nie są wymienne.
+- **Transformacja jest dokładna i bezstratna** — `bg.apply` to obrót
+  + skalowanie per-oś; nie wyrzuca informacji, tylko przerozdziela
+  wariancję na osie.
 
 ## Tła MRL
 
 Zarówno Qwen3-Embedding-4B jak i 8B to modele trenowane z Matryoshka
 Representation Learning — pierwsze `N < D` komponentów każdego wektora
 stanowi sam w sobie poprawny embedding (po L2-renormalizacji). Dla
-każdego modelu repo ma osobny refit ZCA dla wszystkich popularnych
+każdego modelu repo dostarcza osobny refit ZCA dla każdego popularnego
 `N`, więc whitening zgadza się z tym co Twój pipeline faktycznie
 podaje do indeksu przy inferencji:
 
@@ -155,6 +151,12 @@ podaje do indeksu przy inferencji:
 |---|---:|---|
 | Qwen3-Embedding-4B | 2560 | `mrl{2560, 1536, 1024, 768, 512}` |
 | Qwen3-Embedding-8B | 4096 | `mrl{4096, 3072, 2048, 1024, 768, 512}` |
+
+Lista wymiarów dla 8B trzyma się kanonicznych targetów MRL Qwen3
+(potęgi dwójki plus 768 i 3072); off-grid rozmiary jak 2560 / 1536 są
+pominięte dla 8B bo model nie był trenowany MRL przy tych wymiarach —
+slice matematycznie działa, ale recall byłby gorszy niż przy
+wytrenowanych wymiarach.
 
 Łącz każde z nich **wyłącznie** z wektorami sliced + renormalised w
 ten sam sposób:
@@ -167,54 +169,54 @@ bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
 x_white = bg.apply(x_1024[None])[0]       # wybielenie w przestrzeni MRL-1024
 ```
 
-Mieszanie wektorów MRL-1024 z tłem pełnowymiarowym jest niezdefiniowane
-— średnie / kowariancje nie są kompatybilne. Podobnie `mrl1024` z tła
-4B **nie** jest wymienne z `mrl1024` z tła 8B mimo że kształty się
-zgadzają — bazowe statystyki są zupełnie inne.
-
-Potrzebujesz wymiaru którego nie dostarczamy (np. 256, albo 2048 dla
+Potrzebujesz wymiaru którego nie dostarczamy (np. 256 albo 2048 dla
 4B)? Refit zajmuje kilka sekund na zapisanych chunkach — przepis w
 [Zbudować od zera](#zbudować-od-zera-lub-dopasować-dla-własnego-modelu)
 poniżej.
 
 ## Pochodzenie danych
 
-Wszystkie tła zostały dopasowane na zbalansowanym miksie polskich
-korpusów tekstowych (v2 — usunięto źródła czysto-zdaniowe, mC4
-zastąpione przez pre-cleaned FineWeb-2):
+Korpus v2 to zbalansowany miks polskich tekstów (źródła czysto-zdaniowe
+KLEJ zastąpione większą ilością akapitów, zaszumiony mC4 zamieniony na
+pre-cleaned FineWeb-2):
 
 | Źródło | Liczba dokumentów | Uwagi |
 |---|---:|---|
 | Wikipedia PL | 22 500 | [`wikimedia/wikipedia`](https://huggingface.co/datasets/wikimedia/wikipedia) konfiguracja `20231101.pl` |
 | FineWeb-2 PL | 22 500 | [`HuggingFaceFW/fineweb-2`](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) konfiguracja `pol_Latn` — polski web crawl wyciągnięty przez trafilatura, filtrowany językowo/jakościowo, dedup minhashem już u źródła |
-| OASST PL | ~156 | [`OpenAssistant/oasst1`](https://huggingface.co/datasets/OpenAssistant/oasst1) przefiltrowane `lang == 'pl'` (cel 5 000, w praktyce ~156) |
+| OASST PL | ~42 | [`OpenAssistant/oasst1`](https://huggingface.co/datasets/OpenAssistant/oasst1) przefiltrowane `lang == 'pl'` (cel 5 000; ~42 dokumentów przebija próg 500 znaków w publicznym dumpcie) |
 
-Wszystkie źródła wymuszają minimum 500 znaków per dokument (akapit,
-nie zdanie). Seed = 42, streaming shuffle, deterministycznie.
+Faktyczny korpus v2 w aktualnej przebudowie: **45 042 dokumentów,
+112.8 MB tekstu, fingerprint `8e4549ffdbb7a406…`**. Wszystkie źródła
+wymuszają minimum 500 znaków per dokument (akapit, nie zdanie).
+Seed = 42, streaming shuffle, deterministycznie.
 
 Wcześniejsze buildy (zachowane w historii gita) zawierały dodatkowo
-**KLEJ** (NKJP-NER + DYK + CDSC-R) i używały **mC4** zamiast FineWeb-2.
-KLEJ został usunięty bo median długości to 78 znaków — pojedyncze
-zdania przesuwają rozkład embeddingów daleko od typowego celu retrievalu
-(akapity). mC4 zamieniony bo jego surowy tekst niesie boilerplate (menu,
-breadcrumbs, timestampy) z naiwnej ekstrakcji HTML→tekst — i nie da się
-tego naprawić downstream (HTML już dawno wyrzucony). FineWeb-2 dostarcza
-tekst już wyciągnięty przez [trafilatura](https://trafilatura.readthedocs.io).
+**KLEJ** (NKJP-NER + DYK + CDSC-R) i używały **mC4** zamiast
+FineWeb-2. KLEJ został usunięty bo median długości to 78 znaków —
+pojedyncze zdania przesuwają rozkład embeddingów daleko od typowego
+celu retrievalu (akapity). mC4 zamieniony bo jego surowy tekst niesie
+boilerplate (menu, breadcrumbs, timestampy) z naiwnej ekstrakcji
+HTML→tekst — i nie da się tego naprawić downstream (HTML już dawno
+wyrzucony). FineWeb-2 dostarcza tekst już wyciągnięty przez
+[trafilatura](https://trafilatura.readthedocs.io).
 
-Każdy `*.meta.json` zapisuje dokładne `sample_size_actual`,
-`corpus_fingerprint_sha256`, seed i diagnostyczne wartości własne.
+Każdy `*.meta.json` (po skończeniu przebudowy) zapisuje dokładne
+`sample_size_actual`, `corpus_fingerprint_sha256`, seed i
+diagnostyczne wartości własne.
 
 ## Struktura repo
 
 ```
-backgrounds/<name>/
+backgrounds/<name>/                   # zapełnione po przebudowie
   W_A.npy           # (dim, dim) float32  — zastosowanie: (x - mu) @ W
   mu_A.npy          # (dim,)    float32
   eigvals_A.npy     # (dim,)    float32   — diagnostyka, niepotrzebne przy apply
   <name>.meta.json  # pochodzenie + diagnostyka
-REGISTRY.md         # czytelny indeks
+REGISTRY.md         # czytelny indeks, autogenerowany
 registry.json       # to samo, w wersji do parsowania
-loader.py           # loader (tylko numpy, ~60 linii)
+loader.py           # loader tylko numpy (patrz Szybki start)
+scripts/            # pipeline korpus + embed + fit + index
 LICENSE             # CC-BY-4.0
 README.md           # wersja angielska
 README.pl.md        # ten plik
@@ -223,40 +225,45 @@ README.pl.md        # ten plik
 ## Jak zostały zbudowane
 
 Próbka mixu jak wyżej (seed=42), embedding każdego dokumentu przez
-OpenRouter na `Qwen/Qwen3-Embedding-{4B,8B}`, fit ZCA w dwóch
-streamingowych przejściach po chunkach (`μ = E[x]`,
-`Σ = E[(x-μ)(x-μ)ᵀ]`), a potem
-`W = U · diag(1/√(S + ε)) · Uᵀ` z `SVD(Σ)`, gdzie `ε=1e-6`. Bez GPU;
-łączny koszt API: ~$1.2 na oba modele dla mixu 45 156 dokumentów.
+OpenRouter na `Qwen/Qwen3-Embedding-4B` i `Qwen/Qwen3-Embedding-8B`,
+fit ZCA w dwóch streamingowych przejściach po chunkach (`μ = E[x]`,
+`Σ = E[(x-μ)(x-μ)ᵀ]`), a potem `W = U · diag(1/√(S + ε)) · Uᵀ` z
+`SVD(Σ)`, gdzie `ε=1e-6`. Bez GPU; przebudowa kosztuje ~$1 w
+OpenRouterze łącznie dla obu modeli.
 
-Suffix `_nocap` oznacza brak twardego limitu znaków na etapie budowy
-korpusu. Per-dokumentowy kontekst egzekwowany jest precyzyjnie na
-etapie embed: każdy doc przechodzi przez tokenizer modelu (ten sam
-`tokenizer.json` dla 4B i 8B, sha256 `83cdf8c3a34f6886…`) i jest
-obcinany do **30 000 tokenów** jeśli trzeba (~2k zapasu pod oknem 32k
-Qwen3). Tylko ~25 z 45 156 dokumentów przekracza ten limit; reszta
-przechodzi bez zmian. Pełny przepis w następnej sekcji.
+Per-dokumentowy kontekst egzekwowany jest precyzyjnie na etapie
+embed: każdy doc przechodzi przez tokenizer modelu (pobierany z HF —
+ten sam `tokenizer.json` dla 4B i 8B, sha256
+`83cdf8c3a34f6886…`) i jest obcinany do **30 000 tokenów** jeśli
+trzeba (~2k zapasu pod oknem 32k Qwen3). W korpusie v2 tylko **19 z
+45 042 dokumentów** przekracza ten limit; reszta przechodzi bez zmian.
+
+Te same chunki embedów są potem fitowane pięć razy (4B) i sześć razy
+(8B) — raz na każdy wymiar MRL — przez slice chunka do `N` kolumn,
+L2-renormalizację wierszową i ponowny fit ZCA. Cała siatka MRL dla
+jednego modelu zajmuje znacznie mniej niż minutę na CPU po
+zakończeniu embed.
 
 ## Zbudować od zera (lub dopasować dla własnego modelu)
 
 Katalog `scripts/` zawiera kompletny pipeline który możesz odpalić z
 dowolnym kluczem OpenRouter i dla dowolnego modelu embeddującego
 wspieranego przez OpenRouter. Wall-time: ~1-3 h na model, koszt API
-~$0.5-1 na model dla 45k polskich dokumentów (~38 M tokenów po
+~$0.5-1 na model dla 45k polskich dokumentów (~41 M tokenów po
 $0.01-0.02 / M w zależności od providera kierowanego przez OpenRouter).
 
 ```bash
 git clone https://github.com/romek-rozen/polish-whitening-backgrounds.git
 cd polish-whitening-backgrounds
 
-# 1. Zainstaluj minimalne zależności
+# 1. Zainstaluj minimalne zależności (numpy + pyarrow + datasets + requests + tokenizers + trafilatura).
 pip install -r requirements.txt
 
-# 2. Podaj swój klucz OpenRouter (https://openrouter.ai/keys)
+# 2. Podaj swój klucz OpenRouter (https://openrouter.ai/keys).
 cp .env.example .env
 $EDITOR .env             # wklej OPENROUTER_API_KEY=sk-or-...
 
-# 3. End-to-end: korpus → embed (4B + 8B) → fit → index
+# 3. End-to-end: korpus → embed (4B + 8B) → fit (11 wymiarów MRL) → index.
 bash scripts/run_full.sh
 ```
 
@@ -266,9 +273,9 @@ Co robi każdy skrypt:
 |---|---|
 | `scripts/build_corpus.py` | Próbkuje mix polski (wiki + FineWeb-2 PL + oasst) z seed=42 i progiem 500 znaków na akapit. Zapisuje `data/corpus.parquet`. Default: brak górnego capa. |
 | `scripts/embed_via_openrouter.py` | Embedduje `corpus.parquet` przez OpenRouter. Wstępne, precyzyjne obcinanie po tokenach pod okno kontekstu modelu (domyślnie 30 000 tokenów, tokenizer Qwen3 pobierany z HF — zmiana przez `--max-tokens-per-doc` i `--tokenizer-repo`). Adaptacyjny batch (start 16, połowa przy 429/5xx, rośnie po seriach sukcesów). Idempotentny: resume z najwyższego istniejącego chunka. Pisze `data/chunks_<slug>/*.npy` plus per-call `cost_report_<slug>.json`. |
-| `scripts/fit_zca.py` | Dwa streamingowe pass-y (μ, Σ) po chunkach + SVD. Pisze `backgrounds/<name>/{W_A.npy, mu_A.npy, eigvals_A.npy, *.meta.json}`. |
+| `scripts/fit_zca.py` | Dwa streamingowe pass-y (μ, Σ) po chunkach + SVD. Opcjonalne `--truncate-to N` obcina każdy chunk do `N` kolumn i ponownie renormalizuje przed fitem, do refitów MRL. Pisze `backgrounds/<name>/{W_A.npy, mu_A.npy, eigvals_A.npy, *.meta.json}`. |
 | `scripts/index_backgrounds.py` | Regeneruje `REGISTRY.md` + `registry.json`. Wywoływane przez `run_full.sh`. |
-| `scripts/run_full.sh` | Orchestrator. Idempotentny — bezpieczny do ponownego uruchomienia. |
+| `scripts/run_full.sh` | Orchestrator: korpus → embed na każdy model → fit przy każdym wymiarze z `DIMS_<MODEL>` → index. Idempotentny — bezpieczny do ponownego uruchomienia. |
 
 `data/` jest w `.gitignore` (korpus + chunki są odtwarzalne). Tylko
 finalne artefakty `backgrounds/<name>/` trafiają do repo.
@@ -279,15 +286,14 @@ Aby dopasować tylko jeden model:
 MODELS="qwen/qwen3-embedding-8b" bash scripts/run_full.sh
 ```
 
-Aby zachować cap na poziomie korpusu (np. dla repro starszego 1800-znakowego
-buildu) — wartość trafia do `build_corpus.py`:
+Aby zmienić listę wymiarów MRL dla modelu (default: 4B = 2560/1536/1024/768/512,
+8B = 4096/3072/2048/1024/768/512):
 
 ```bash
-MAX_CHARS=1800 NAME_PREFIX=polish_mixed_50k_cap1800 bash scripts/run_full.sh
+DIMS_4B="2560 1024" bash scripts/run_full.sh   # tylko dwa fity dla 4B
 ```
 
-Aby zaostrzyć lub poluzować limit tokenów per-doc w kroku embed (domyślnie
-30 000, ~2k zapasu pod oknem 32k Qwen3):
+Aby zaostrzyć lub poluzować limit tokenów per-doc w kroku embed:
 
 ```bash
 python scripts/embed_via_openrouter.py \
@@ -296,9 +302,10 @@ python scripts/embed_via_openrouter.py \
 ```
 
 Ustaw `--max-tokens-per-doc 0` żeby wyłączyć limit; dokumenty
-przekraczające kontekst modelu wywołają wtedy HTTP 200 + body z błędem
-od providera i zostaną pominięte (z zero-wektorem jako placeholderem —
-żeby wiersz N w chunku dalej odpowiadał wierszowi N w korpusie).
+przekraczające kontekst modelu wywołają wtedy HTTP 200 + body z
+błędem od providera i zostaną pominięte (z zero-wektorem jako
+placeholderem — żeby wiersz N w chunku dalej odpowiadał wierszowi N
+w korpusie).
 
 ## Licencja
 
@@ -307,14 +314,14 @@ zachowaniu atrybucji. Bez gwarancji.
 
 ## Cytowanie
 
-Jeżeli korzystasz z tych teł w publikacji, prosimy zacytować model
-Qwen3-Embedding-4B oraz odesłać do tego repo, żeby inni mogli też je
+Jeżeli korzystasz z tych teł w publikacji, prosimy zacytować
+Qwen3-Embedding oraz odesłać do tego repo, żeby inni mogli też je
 znaleźć:
 
 ```
 @misc{polish-whitening-backgrounds,
   author = {Rozenberger, Roman},
-  title  = {Polish ZCA whitening backgrounds for Qwen3-Embedding-4B},
+  title  = {Polish ZCA whitening backgrounds for Qwen3-Embedding (4B & 8B)},
   year   = {2026},
   url    = {https://github.com/romek-rozen/polish-whitening-backgrounds}
 }
