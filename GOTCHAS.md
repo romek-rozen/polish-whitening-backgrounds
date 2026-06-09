@@ -138,6 +138,23 @@ last fallback on natural prose.
 background must use the **same chunker on the corpus**. Different
 splitters → different Σ → wrong whitening. See §1.
 
+**Known issue (acceptable for v3.0):** the splitter emits short
+"section-header" chunks for Wikipedia docs — paragraphs that are
+just a header line ("Życiorys", "Historia", "Geneza", etc.)
+surrounded by `\n\n` — because the first-priority separator splits
+them off as standalone chunks.  On the v2 corpus this is **756 of
+130 900 chunks (0.6 %)** with median length 8–25 chars.
+
+It's tolerable because:
+- The same splitter is used at fit and inference time, so the
+  whitening Σ faithfully represents what real queries will hit.
+- 0.6 % is too small a fraction to perturb the principal directions.
+
+The clean fix (for a future v3.1) is a `MIN_CHUNK_CHARS=100`
+floor that merges short chunks into their immediate neighbour
+instead of dropping them — dropping shifts the row alignment of
+all downstream chunks in the same doc and breaks resume.
+
 ## 7. Resume is by chunk file, not by row count
 
 `embed_via_openrouter.py` resumes from the highest `chunk_NNNN.npy`

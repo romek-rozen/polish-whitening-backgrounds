@@ -54,10 +54,23 @@ logger = logging.getLogger("build_corpus")
 #     HuggingFace.  We don't have to re-run trafilatura ourselves —
 #     mc4's raw text doesn't carry HTML so we couldn't anyway.
 #   - MIN_DOC_CHARS=500 floor enforces "paragraph, not sentence".
+# Order is load-bearing: rows are appended source-by-source in the
+# dict order below, and the embed step's chunk_NNNN.npy files are
+# row-aligned with this layout.  If you ever need to enlarge the
+# corpus AFTER a partial embed has been run, ALWAYS append the new
+# tier at the END — never re-order or grow an existing tier, or
+# previously-written chunks will silently point at the wrong texts.
 DEFAULT_MIX = {
-    "wikipedia": 22500,
-    "fineweb":   22500,
-    "oasst":      5000,
+    "wikipedia":    22500,
+    "fineweb":      22500,
+    "oasst":         5000,
+    # fineweb_more: appended on 2026-06-09 to bring the actual corpus
+    # to ~50k (oasst-1 only yielded 42 Polish threads, leaving the
+    # original mix at 45 042 docs — well short of the `_50k` in the
+    # background names).  Pulls the *next* 5000 fineweb docs after
+    # the first tier's offset by re-running the same seeded shuffle
+    # and skipping the prefix the first tier already consumed.
+    "fineweb_more":  5000,
 }
 
 MIN_DOC_CHARS = 500
@@ -116,10 +129,46 @@ def _oasst_iter(seed: int, max_chars: int | None) -> Iterator[tuple[str, str]]:
         yield "oasst", _maybe_truncate(text, max_chars)
 
 
+def _fineweb_more_iter(seed: int, max_chars: int | None) -> Iterator[tuple[str, str]]:
+    """Second pass through FineWeb-2 PL, picking up where the first
+    tier left off.  Uses the same seeded shuffle so the stream is
+    deterministic, then ``skip()``-s the docs the first tier already
+    consumed.  We pre-filter ``MIN_DOC_CHARS`` and ``language_score``
+    exactly like ``_fineweb_iter`` does, so the post-filter ordering
+    is identical too: docs N..N+5000 from this iter are guaranteed
+    disjoint from docs 0..N from the first tier.
+
+    The output tag is ``"fineweb"`` (not ``"fineweb_more"``) so
+    downstream readers — the registry, the meta.json sample
+    counts — see one homogeneous FineWeb pool instead of an
+    artificial sub-source.
+    """
+    from datasets import load_dataset
+    ds = load_dataset("HuggingFaceFW/fineweb-2", name="pol_Latn",
+                      split="train", streaming=True)
+    ds = ds.shuffle(seed=seed, buffer_size=10_000)
+    # Same filters as _fineweb_iter; we need to apply them BEFORE the
+    # skip so the offset counts post-filter docs, otherwise we'd
+    # advance through different rows than the first tier did.
+    seen = 0
+    for row in ds:
+        text = (row.get("text") or "").strip()
+        if len(text) < MIN_DOC_CHARS:
+            continue
+        score = row.get("language_score") or 0.0
+        if score and score < 0.5:
+            continue
+        seen += 1
+        if seen <= 22500:
+            continue   # first tier already consumed this doc
+        yield "fineweb", _maybe_truncate(text, max_chars)
+
+
 SOURCES = {
-    "wikipedia": _wiki_iter,
-    "fineweb":   _fineweb_iter,
-    "oasst":     _oasst_iter,
+    "wikipedia":    _wiki_iter,
+    "fineweb":      _fineweb_iter,
+    "oasst":        _oasst_iter,
+    "fineweb_more": _fineweb_more_iter,
 }
 
 
@@ -189,14 +238,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--wiki", type=int, default=DEFAULT_MIX["wikipedia"])
     ap.add_argument("--fineweb", type=int, default=DEFAULT_MIX["fineweb"])
     ap.add_argument("--oasst", type=int, default=DEFAULT_MIX["oasst"])
+    ap.add_argument("--fineweb-more", type=int,
+                    default=DEFAULT_MIX["fineweb_more"])
     args = ap.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    # Order is load-bearing — appended sources go LAST so previously
+    # written chunks stay row-aligned.  See the comment on DEFAULT_MIX.
     mix = {
-        "wikipedia": args.wiki,
-        "fineweb": args.fineweb,
-        "oasst": args.oasst,
+        "wikipedia":    args.wiki,
+        "fineweb":      args.fineweb,
+        "oasst":        args.oasst,
+        "fineweb_more": args.fineweb_more,
     }
     build_corpus(args.out, mix=mix, seed=args.seed, max_chars=args.max_chars)
     return 0
