@@ -121,6 +121,75 @@ obetnij do pierwszych `N < 2560` kolumn, L2-renormalizuj wierszowo,
 ponownie dopasuj ZCA na obciętym zbiorze. Wynik jest deterministyczny
 dla zadanego rodzica.
 
+Tła `_qwen3-*-nocap` zostały zbudowane przez API OpenRouter (bez
+potrzeby lokalnego GPU) i **bez** capa 1800 znaków — przepis w
+następnej sekcji. Stosują precyzyjne obcinanie po tokenach (domyślnie
+30 000 tokenów, ~2k zapasu pod oknem 32k Qwen3) liczone tokenizerem
+modelu pobranym z HuggingFace. W 45 156-dokumentowym miksie tylko ~25
+dokumentów przekracza ten limit; reszta przechodzi bez zmian.
+
+## Zbudować od zera (lub dopasować dla własnego modelu)
+
+Katalog `scripts/` zawiera kompletny pipeline który możesz odpalić z
+dowolnym kluczem OpenRouter i dla dowolnego modelu embeddującego
+wspieranego przez OpenRouter. Wall-time: ~2-4 h na model, koszt API
+~$2-5 dla 45k polskich dokumentów (zależnie od rozkładu długości).
+
+```bash
+git clone https://github.com/romek-rozen/polish-whitening-backgrounds.git
+cd polish-whitening-backgrounds
+
+# 1. Zainstaluj minimalne zależności
+pip install -r requirements.txt
+
+# 2. Podaj swój klucz OpenRouter (https://openrouter.ai/keys)
+cp .env.example .env
+$EDITOR .env             # wklej OPENROUTER_API_KEY=sk-or-...
+
+# 3. End-to-end: korpus → embed (4B + 8B) → fit → index
+bash scripts/run_full.sh
+```
+
+Co robi każdy skrypt:
+
+| Skrypt | Zastosowanie |
+|---|---|
+| `scripts/build_corpus.py` | Próbkuje mix polski (wiki + mc4 + klej + oasst) z seed=42. Zapisuje `data/corpus.parquet`. Default: brak capa. |
+| `scripts/embed_via_openrouter.py` | Embedduje `corpus.parquet` przez OpenRouter. Wstępne, precyzyjne obcinanie po tokenach pod okno kontekstu modelu (domyślnie 30 000 tokenów, tokenizer Qwen3 pobierany z HF — zmiana przez `--max-tokens-per-doc` i `--tokenizer-repo`). Adaptacyjny batch (start 16, połowa przy 429/5xx, rośnie po seriach sukcesów). Idempotentny: resume z najwyższego istniejącego chunka. Pisze `data/chunks_<slug>/*.npy` plus per-call `cost_report_<slug>.json`. |
+| `scripts/fit_zca.py` | Dwa streamingowe pass-y (μ, Σ) po chunkach + SVD. Pisze `backgrounds/<name>/{W_A.npy, mu_A.npy, eigvals_A.npy, *.meta.json}`. |
+| `scripts/index_backgrounds.py` | Regeneruje `REGISTRY.md` + `registry.json`. Wywoływane przez `run_full.sh`. |
+| `scripts/run_full.sh` | Orchestrator. Idempotentny — bezpieczny do ponownego uruchomienia. |
+
+`data/` jest w `.gitignore` (korpus + chunki są odtwarzalne). Tylko
+finalne artefakty `backgrounds/<name>/` trafiają do repo.
+
+Aby dopasować tylko jeden model:
+
+```bash
+MODELS="qwen/qwen3-embedding-8b" bash scripts/run_full.sh
+```
+
+Aby zachować cap na poziomie korpusu (np. dla repro starszego 1800-znakowego
+buildu) — wartość trafia do `build_corpus.py`:
+
+```bash
+MAX_CHARS=1800 NAME_PREFIX=polish_mixed_50k_cap1800 bash scripts/run_full.sh
+```
+
+Aby zaostrzyć lub poluzować limit tokenów per-doc w kroku embed (domyślnie
+30 000, ~2k zapasu pod oknem 32k Qwen3):
+
+```bash
+python scripts/embed_via_openrouter.py \
+  --model qwen/qwen3-embedding-4b \
+  --max-tokens-per-doc 28000
+```
+
+Ustaw `--max-tokens-per-doc 0` żeby wyłączyć limit; dokumenty
+przekraczające kontekst modelu wywołają wtedy HTTP 200 + body z błędem
+od providera i zostaną pominięte (z zero-wektorem jako placeholderem —
+żeby wiersz N w chunku dalej odpowiadał wierszowi N w korpusie).
+
 ## Licencja
 
 [CC-BY-4.0](LICENSE). Darmowe użycie, dzielenie się i adaptacja przy

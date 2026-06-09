@@ -120,6 +120,76 @@ embedding chunks — no re-embedding. Slice each chunk to the first
 `N < 2560` columns, L2-renormalise row-wise, re-fit ZCA on the
 truncated set. The result is deterministic given the parent.
 
+The `_qwen3-*-nocap` backgrounds were rebuilt via OpenRouter API
+(no local GPU needed) and **without** the 1800-char cap — see the next
+section for the recipe. They use a token-precise pre-flight truncation
+(default 30 000 tokens, ~2k margin under Qwen3's 32k context), enforced
+with the model's own tokenizer pulled from HuggingFace. About 25 docs
+in the 45 156-doc Polish mix exceed that cap; everything else passes
+through untouched.
+
+## Rebuild from scratch (or fit your own model)
+
+The `scripts/` directory contains a complete pipeline you can run with
+any OpenRouter API key, on any embedding model OpenRouter supports.
+Expected wall time is ~2–4 hours per model and ~$2–5 in API spend for
+the 45k-doc Polish mix (depending on doc-length distribution).
+
+```bash
+git clone https://github.com/romek-rozen/polish-whitening-backgrounds.git
+cd polish-whitening-backgrounds
+
+# 1. Install minimal deps
+pip install -r requirements.txt
+
+# 2. Provide your OpenRouter API key (https://openrouter.ai/keys)
+cp .env.example .env
+$EDITOR .env             # paste OPENROUTER_API_KEY=sk-or-...
+
+# 3. End-to-end: corpus → embed (both 4B + 8B) → fit → index
+bash scripts/run_full.sh
+```
+
+What each script does:
+
+| Script | Purpose |
+|---|---|
+| `scripts/build_corpus.py` | Sample the Polish mix (wiki + mc4 + klej + oasst) with seed=42. Writes `data/corpus.parquet`. Default: no per-doc cap. |
+| `scripts/embed_via_openrouter.py` | Embed `corpus.parquet` via OpenRouter. Pre-flight token-precise truncation under the model's context window (default 30 000 tokens via the Qwen3 tokenizer pulled from HF — overridable with `--max-tokens-per-doc` and `--tokenizer-repo`). Adaptive batch (starts at 16, halves on 429/5xx, grows back after success streaks). Idempotent: resumes from the highest existing chunk. Writes `data/chunks_<slug>/*.npy` and a per-call `cost_report_<slug>.json`. |
+| `scripts/fit_zca.py` | Two streaming passes (μ, Σ) over chunks + SVD. Writes `backgrounds/<name>/{W_A.npy, mu_A.npy, eigvals_A.npy, *.meta.json}`. |
+| `scripts/index_backgrounds.py` | Regenerate `REGISTRY.md` + `registry.json`. Called by `run_full.sh`. |
+| `scripts/run_full.sh` | Orchestrator. Idempotent — safe to re-run. |
+
+`data/` is git-ignored (corpus + chunks are rebuildable). Only the
+fitted `backgrounds/<name>/` artefacts ship in this repo.
+
+To fit on a single model only:
+
+```bash
+MODELS="qwen/qwen3-embedding-8b" bash scripts/run_full.sh
+```
+
+To keep a corpus-level char cap (e.g. for repro of the legacy 1800-char
+build), pass it to `build_corpus.py`:
+
+```bash
+MAX_CHARS=1800 NAME_PREFIX=polish_mixed_50k_cap1800 bash scripts/run_full.sh
+```
+
+To tighten or relax the per-doc token cap on the embed step (default
+30 000, ~2k margin under Qwen3's 32k context):
+
+```bash
+python scripts/embed_via_openrouter.py \
+  --model qwen/qwen3-embedding-4b \
+  --max-tokens-per-doc 28000
+```
+
+Set `--max-tokens-per-doc 0` to disable the cap; documents that exceed
+the model's context will then trigger an HTTP 200 + error body from the
+provider and be skipped (with a zero-vector placeholder, so chunk row N
+still maps to corpus row N).
+
 ## License
 
 [CC-BY-4.0](LICENSE). Free to use, share, and adapt with attribution.
