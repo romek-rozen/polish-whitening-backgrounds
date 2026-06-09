@@ -45,6 +45,51 @@ DEFAULT_SEPARATORS: list[str] = [
 ]
 
 
+def merge_tiny(chunks: list[str], min_chars: int = 100) -> list[str]:
+    """Forward-merge chunks shorter than *min_chars* into the next one.
+
+    LangChain's ``RecursiveCharacterTextSplitter`` has a known wart:
+    when a very short paragraph (e.g. a Wikipedia section header like
+    "Życiorys" between two ``\\n\\n`` separators) sits between two
+    longer ones, the splitter emits it as a **standalone chunk**
+    *without* applying overlap from its neighbours.  You end up with
+    a chunk that's literally just the header — useless for retrieval
+    and contributes a degenerate embedding to the whitening Σ.
+
+    Forward-merging is the right fix because section headers are
+    really the **opening line** of the next paragraph in author
+    intent.  Prepending "Życiorys\\n\\n" to the next chunk's text
+    recovers that semantics: the next chunk starts as
+    ``"Życiorys\\n\\n[section body...]"`` and the retrieval-time
+    query for "Maria Skłodowska życiorys" hits the same chunk that
+    actually contains the biography.
+
+    The last chunk has no successor, so any tiny tail gets appended
+    to the *previous* chunk instead.  Net result: every emitted
+    chunk is ≥ ``min_chars`` characters (unless the whole document
+    was shorter than that, which only happens after upstream filters
+    fail and we accept it rather than drop the doc).
+    """
+    if not chunks:
+        return chunks
+    out: list[str] = []
+    pending = ""
+    for ch in chunks:
+        if pending:
+            ch = pending + "\n\n" + ch
+            pending = ""
+        if len(ch) < min_chars:
+            pending = ch
+            continue
+        out.append(ch)
+    if pending:
+        if out:
+            out[-1] = out[-1] + "\n\n" + pending
+        else:
+            out.append(pending)
+    return out
+
+
 def make_splitter(
     model: str,
     chunk_size: int = 512,

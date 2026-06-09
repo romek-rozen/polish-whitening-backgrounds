@@ -48,7 +48,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from tqdm import tqdm
 
-from lib.chunker import make_splitter
+from lib.chunker import make_splitter, merge_tiny
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = REPO_ROOT / "data"
@@ -100,7 +100,13 @@ def chunk_corpus(
     for text, doc_sha, source in tqdm(
         zip(texts, shas, sources), total=n_docs, desc="chunk",
     ):
-        for idx, chunk in enumerate(splitter.split_text(text)):
+        # split_text emits tiny "header-only" chunks for wiki sections
+        # (the splitter doesn't propagate overlap into very short
+        # paragraphs — see lib.chunker.merge_tiny for the gory why).
+        # Forward-merge them so every chunk we ship is semantically
+        # whole.
+        raw_chunks = splitter.split_text(text)
+        for idx, chunk in enumerate(merge_tiny(raw_chunks)):
             out_text.append(chunk)
             out_doc_sha.append(doc_sha)
             out_chunk_idx.append(idx)

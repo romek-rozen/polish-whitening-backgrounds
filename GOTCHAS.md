@@ -138,22 +138,25 @@ last fallback on natural prose.
 background must use the **same chunker on the corpus**. Different
 splitters → different Σ → wrong whitening. See §1.
 
-**Known issue (acceptable for v3.0):** the splitter emits short
-"section-header" chunks for Wikipedia docs — paragraphs that are
-just a header line ("Życiorys", "Historia", "Geneza", etc.)
-surrounded by `\n\n` — because the first-priority separator splits
-them off as standalone chunks.  On the v2 corpus this is **756 of
-130 900 chunks (0.6 %)** with median length 8–25 chars.
+**Why the post-process merge step exists:** LangChain's
+``RecursiveCharacterTextSplitter`` has a wart — when a very short
+paragraph (e.g. a Wikipedia section header like "Życiorys" between
+two ``\n\n`` separators) sits between two longer ones, the splitter
+emits it as a **standalone chunk *without* applying overlap**.
+You'd end up with a chunk that's literally just the header — useless
+for retrieval, and contributing a degenerate embedding to the
+whitening Σ.
 
-It's tolerable because:
-- The same splitter is used at fit and inference time, so the
-  whitening Σ faithfully represents what real queries will hit.
-- 0.6 % is too small a fraction to perturb the principal directions.
+``lib.chunker.merge_tiny`` forward-merges any chunk shorter than
+100 chars into the next chunk (or, for the last-in-doc, into the
+previous chunk).  Net effect: section headers become the **opening
+line** of the next paragraph — which matches how authors actually
+intended them.  A query like "Maria Skłodowska życiorys" then hits
+the chunk that starts with "Życiorys\n\n[biography text...]" and
+also contains the answer.
 
-The clean fix (for a future v3.1) is a `MIN_CHUNK_CHARS=100`
-floor that merges short chunks into their immediate neighbour
-instead of dropping them — dropping shifts the row alignment of
-all downstream chunks in the same doc and breaks resume.
+Verified on the v2 corpus: pre-merge 130 900 chunks with 756 (0.6 %)
+under 30 chars; post-merge 129 181 chunks, **all ≥ 100 chars**.
 
 ## 7. Resume is by chunk file, not by row count
 
