@@ -27,6 +27,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import logging
 import os
@@ -76,12 +77,17 @@ def embed_corpus(
     slug = model_slug(model)
     state = detect_resume_state(out_dir, slug)
 
-    # Load corpus into RAM (45k strings ≈ 100 MB, fine).
+    # Load corpus into RAM (45k strings ≈ 100 MB of text, ~300 MB with
+    # Python str overhead).  Drop the pyarrow Table immediately after
+    # extracting columns — its internal Arrow buffer is another full
+    # copy that we'd otherwise hold for the lifetime of embed_corpus.
     table = pq.read_table(corpus_path, columns=["text", "sha", "source"])
     texts_all = table.column("text").to_pylist()
     shas_all = table.column("sha").to_pylist()
     sources_all = table.column("source").to_pylist()
     n_total = len(texts_all)
+    del table
+    gc.collect()
 
     if max_tokens_per_doc and max_tokens_per_doc > 0:
         resolve_and_apply_token_cap(

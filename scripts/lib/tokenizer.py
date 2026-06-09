@@ -55,6 +55,7 @@ def load_tokenizer(hf_repo_id: str):
 
 def truncate_to_tokens(
     texts: list[str], tokenizer, max_tokens: int,
+    encode_batch_size: int = 1000,
 ) -> tuple[int, int, int]:
     """Mutate *texts* in place so no entry exceeds *max_tokens*.
 
@@ -62,20 +63,34 @@ def truncate_to_tokens(
     logging the safety-cap impact: on the 45k-doc Polish corpus only
     ~25 docs are typically affected by a 30 000-token cap, so the
     pre-flight pass is cheap and obvious.
+
+    Why chunk the batch instead of one ``encode_batch`` call: the Rust
+    crate keeps every ``Encoding`` object alive for the duration of the
+    list, so a single 45 042-element call holds ~250 MB of
+    token-IDs/offsets in RAM **for the entire embed run** since the
+    caller stays in scope.  Chunking lets the GC reap each block as
+    soon as we've inspected it, while still letting the Rust crate
+    multi-thread within each block.
     """
     n_capped = 0
     max_seen = 0
     total = 0
-    encs = tokenizer.encode_batch(texts, add_special_tokens=False)
-    for i, enc in enumerate(encs):
-        ids = enc.ids
-        n = len(ids)
-        total += n
-        if n > max_seen:
-            max_seen = n
-        if n > max_tokens:
-            texts[i] = tokenizer.decode(ids[:max_tokens], skip_special_tokens=True)
-            n_capped += 1
+    n = len(texts)
+    for start in range(0, n, encode_batch_size):
+        end = min(start + encode_batch_size, n)
+        encs = tokenizer.encode_batch(texts[start:end], add_special_tokens=False)
+        for j, enc in enumerate(encs):
+            ids = enc.ids
+            m = len(ids)
+            total += m
+            if m > max_seen:
+                max_seen = m
+            if m > max_tokens:
+                texts[start + j] = tokenizer.decode(
+                    ids[:max_tokens], skip_special_tokens=True,
+                )
+                n_capped += 1
+        del encs
     return n_capped, max_seen, total
 
 
