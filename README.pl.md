@@ -1,14 +1,22 @@
-# Polskie tła ZCA whitening dla Qwen3-Embedding-4B
+# Polskie tła ZCA whitening dla Qwen3-Embedding (4B & 8B)
 
 🇬🇧 **English:** [README.md](./README.md)
 
 Gotowe artefakty whiteningu (`W_A.npy`, `mu_A.npy`, `eigvals_A.npy`) do
 podpięcia w siteFocus / dowolnym pipelinie retrievalu używającym
 [`Qwen/Qwen3-Embedding-4B`](https://huggingface.co/Qwen/Qwen3-Embedding-4B)
-na tekstach polskich. Oszczędzasz sobie ~godziny próbkowania korpusu,
-50k embeddingów i ZCA SVD — klonujesz, ładujesz, używasz.
+lub [`Qwen/Qwen3-Embedding-8B`](https://huggingface.co/Qwen/Qwen3-Embedding-8B)
+na tekstach polskich. Oszczędzasz sobie próbkowanie korpusu, 45k
+embeddingów i ZCA SVD — klonujesz, ładujesz, używasz.
 
-Liczba teł w repo: **5**  ·  Licencja: [CC-BY-4.0](LICENSE)
+Liczba teł w repo: **2**  ·  Licencja: [CC-BY-4.0](LICENSE)
+
+> **Uwaga (2026-06-09):** repo zostało wyczyszczone i przebudowane na
+> świeżej próbce 45 156 polskich dokumentów z precyzyjnym obcinaniem
+> po tokenach (zamiast char-cap) pod oknem kontekstu 32k Qwen3.
+> Poprzednie 5 teł (`polish_mixed_50k_v1{,_mrl1024,_mrl1536}`,
+> `corpus205_n3155`, `polish_smoke_1500`) zostało usuniętych z `main`.
+> Sięgnij do historii gita jeśli ich potrzebujesz.
 
 ## Szybki start
 
@@ -21,14 +29,13 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
-# ['corpus205_n3155', 'polish_mixed_50k_v1', 'polish_mixed_50k_v1_mrl1024',
-#  'polish_mixed_50k_v1_mrl1536', 'polish_smoke_1500']
+# ['polish_mixed_50k_v1_qwen3-4b_nocap', 'polish_mixed_50k_v1_qwen3-8b_nocap']
 
-bg = load_background("polish_mixed_50k_v1_mrl1024")
+bg = load_background("polish_mixed_50k_v1_qwen3-4b_nocap")
 print(bg.dim, bg.W.shape, bg.mu.shape)
-# 1024 (1024, 1024) (1024,)
+# 2560 (2560, 2560) (2560,)
 
-# Wybielanie batcha L2-znormalizowanych embeddingów Qwen3 (obciętych do bg.dim jeśli MRL).
+# Wybielanie batcha L2-znormalizowanych embeddingów Qwen3.
 import numpy as np
 x = np.random.randn(8, bg.dim).astype("float32")
 x /= np.linalg.norm(x, axis=1, keepdims=True)
@@ -36,45 +43,56 @@ x_white = bg.apply(x)         # równoważne (x - bg.mu) @ bg.W
 ```
 
 Jedyną zależnością runtime jest `numpy`. Bez `git lfs`, bez
-zewnętrznych pobrań — każdy plik leży wprost w repo (największy
-~25 MB, łącznie ~88 MB).
+zewnętrznych pobrań — każdy plik leży wprost w repo.
 
 ## Które tło wybrać?
 
-| Kiedy | Wybierz |
-|---|---|
-| Produkcja, pełny wymiar Qwen3 (2560) | `polish_mixed_50k_v1` |
-| MRL obcięte do 1024 wymiarów | `polish_mixed_50k_v1_mrl1024` |
-| MRL obcięte do 1536 wymiarów | `polish_mixed_50k_v1_mrl1536` |
-| Smoke / unit-testy | `polish_smoke_1500` (**NIE** używaj na produkcji — niedostateczny rank) |
-| Bootstrap (legacy) | `corpus205_n3155` — zostawione do reprodukcji starych runów |
+| Kiedy | Wybierz | Wymiar |
+|---|---|---:|
+| Qwen3-Embedding-4B, natywny | `polish_mixed_50k_v1_qwen3-4b_nocap` | 2560 |
+| Qwen3-Embedding-8B, natywny | `polish_mixed_50k_v1_qwen3-8b_nocap` | 4096 |
 
 Pełna tabela z `n_fit`, deficytem rangi, stosunkiem największej do
 średniej wartości własnej i datą fitu znajduje się w
 [`REGISTRY.md`](REGISTRY.md). Te same dane w
 [`registry.json`](registry.json) gdy ładujesz programowo.
 
-## Co to jest tło MRL-truncated?
+Potrzebujesz wersji MRL (np. 1024 lub 1536 wymiarów dla 4B)?
+Uruchom `scripts/fit_zca.py` na zapisanych chunkach — patrz
+[Zbudować od zera](#zbudować-od-zera-lub-dopasować-dla-własnego-modelu)
+poniżej.
 
-[`Qwen3-Embedding-4B`](https://huggingface.co/Qwen/Qwen3-Embedding-4B)
-to model trenowany z Matryoshka Representation Learning — pierwsze
-`N < 2560` komponentów każdego wektora stanowi sam w sobie poprawny
-embedding (po L2-renormalizacji). Tła `_mrlN` w tym repo to refit ZCA
-na takich obciętych + renormalizowanych wektorach, więc transformacja
-whiteningu zgadza się z tym co Twój pipeline faktycznie widzi przy
-inferencji. Łącz je **wyłącznie** z wektorami sliced + renormalised w
-ten sam sposób:
+## Refity MRL
+
+Zarówno Qwen3-Embedding-4B jak i 8B to modele trenowane z Matryoshka
+Representation Learning — pierwsze `N < D` komponentów każdego wektora
+stanowi sam w sobie poprawny embedding (po L2-renormalizacji). Tła
+MRL to refit ZCA na takich obciętych + renormalizowanych wektorach,
+więc transformacja whiteningu zgadza się z tym co Twój pipeline
+faktycznie widzi przy inferencji. **W repo domyślnie żadnego MRL nie
+ma**; możesz wygenerować w kilka sekund z zapisanych chunków:
+
+```bash
+python scripts/fit_zca.py \
+  --chunks data/chunks_qwen_qwen3-embedding-4b \
+  --name polish_mixed_50k_v1_qwen3-4b_mrl1024 \
+  --model qwen/qwen3-embedding-4b \
+  --truncate-to 1024
+```
+
+Następnie łącz takie tło **wyłącznie** z wektorami sliced +
+renormalised w ten sam sposób:
 
 ```python
-x_full = embed("...")                     # (2560,) z Qwen3
+x_full = embed("...")                     # (2560,) z Qwen3-4B
 x_1024 = x_full[:1024]
 x_1024 /= np.linalg.norm(x_1024)
-bg = load_background("polish_mixed_50k_v1_mrl1024")
+bg = load_background("polish_mixed_50k_v1_qwen3-4b_mrl1024")
 x_white = bg.apply(x_1024[None])[0]       # wybielenie w przestrzeni MRL-1024
 ```
 
-Mieszanie wektorów MRL-1024 z tłem 2560-D (`polish_mixed_50k_v1`) jest
-niezdefiniowane — średnie / kowariancje nie są kompatybilne.
+Mieszanie wektorów MRL-1024 z tłem pełnowymiarowym jest niezdefiniowane
+— średnie / kowariancje nie są kompatybilne.
 
 ## Pochodzenie danych
 
@@ -109,31 +127,28 @@ README.pl.md        # ten plik
 
 ## Jak zostały zbudowane
 
-`polish_mixed_50k_v1` (rodzic 2560-D) został dopasowany od zera:
-próbka mixu jak wyżej (seed=42), embedding każdego dokumentu modelem
-Qwen3 przy `max_chars_per_doc=1800`, fit ZCA w dwóch przejściach po
-chunkach (`μ = E[x]`, `Σ = E[(x-μ)(x-μ)ᵀ]`), a potem
-`W = U · diag(1/√(S + ε)) · Uᵀ` z `SVD(Σ)`, gdzie `ε=1e-6`.
+Próbka mixu jak wyżej (seed=42), embedding każdego dokumentu przez
+OpenRouter na `Qwen/Qwen3-Embedding-{4B,8B}`, fit ZCA w dwóch
+streamingowych przejściach po chunkach (`μ = E[x]`,
+`Σ = E[(x-μ)(x-μ)ᵀ]`), a potem
+`W = U · diag(1/√(S + ε)) · Uᵀ` z `SVD(Σ)`, gdzie `ε=1e-6`. Bez GPU;
+łączny koszt API: ~$1.2 na oba modele dla mixu 45 156 dokumentów.
 
-Tła pochodne `_mrl*` zostały dofitowane w sekundach z zapisanych
-chunków rodzica — bez ponownego embedowania. Algorytm: weź każdy chunk,
-obetnij do pierwszych `N < 2560` kolumn, L2-renormalizuj wierszowo,
-ponownie dopasuj ZCA na obciętym zbiorze. Wynik jest deterministyczny
-dla zadanego rodzica.
-
-Tła `_qwen3-*-nocap` zostały zbudowane przez API OpenRouter (bez
-potrzeby lokalnego GPU) i **bez** capa 1800 znaków — przepis w
-następnej sekcji. Stosują precyzyjne obcinanie po tokenach (domyślnie
-30 000 tokenów, ~2k zapasu pod oknem 32k Qwen3) liczone tokenizerem
-modelu pobranym z HuggingFace. W 45 156-dokumentowym miksie tylko ~25
-dokumentów przekracza ten limit; reszta przechodzi bez zmian.
+Suffix `_nocap` oznacza brak twardego limitu znaków na etapie budowy
+korpusu. Per-dokumentowy kontekst egzekwowany jest precyzyjnie na
+etapie embed: każdy doc przechodzi przez tokenizer modelu (ten sam
+`tokenizer.json` dla 4B i 8B, sha256 `83cdf8c3a34f6886…`) i jest
+obcinany do **30 000 tokenów** jeśli trzeba (~2k zapasu pod oknem 32k
+Qwen3). Tylko ~25 z 45 156 dokumentów przekracza ten limit; reszta
+przechodzi bez zmian. Pełny przepis w następnej sekcji.
 
 ## Zbudować od zera (lub dopasować dla własnego modelu)
 
 Katalog `scripts/` zawiera kompletny pipeline który możesz odpalić z
 dowolnym kluczem OpenRouter i dla dowolnego modelu embeddującego
-wspieranego przez OpenRouter. Wall-time: ~2-4 h na model, koszt API
-~$2-5 dla 45k polskich dokumentów (zależnie od rozkładu długości).
+wspieranego przez OpenRouter. Wall-time: ~1-3 h na model, koszt API
+~$0.5-1 na model dla 45k polskich dokumentów (~38 M tokenów po
+$0.01-0.02 / M w zależności od providera kierowanego przez OpenRouter).
 
 ```bash
 git clone https://github.com/romek-rozen/polish-whitening-backgrounds.git
