@@ -19,44 +19,51 @@ repo root looks for exactly these names.
 ## Naming convention
 
 ```
-<corpus>_<model-short>_<variant>/
-   │       │            │
-   │       │            └─ mrl<dim>  → MRL refit at dim N
-   │       └─ qwen3-4b | qwen3-8b
-   └─ e.g. polish_mixed_50k_v2 → the v2 doc-level Polish corpus
+<model>_<corpus>_<granularity>_mrl<dim>/
+   │       │          │            │
+   │       │          │            └─ mrl<dim>     MRL refit at dim N
+   │       │          └─ doc | chunks              embedding granularity
+   │       └─ pl_mixed50k                          language + corpus tag
+   └─ qwen3_4b | qwen3_8b                          embedding model
 ```
 
-Example: `polish_mixed_50k_v2_qwen3-4b_mrl1024/` is the ZCA refit
-for Qwen3-Embedding-4B at MRL dim 1024, fitted on the v2 doc-level
-Polish corpus.
+Example: `qwen3_4b_pl_mixed50k_doc_mrl1024/` is the ZCA refit for
+Qwen3-Embedding-4B at MRL dim 1024, fitted on the `pl_mixed50k`
+corpus at **document** granularity (one embedding per whole doc).
 
-## What "v2" means
+Model first means `ls backgrounds | grep qwen3_4b` lists every
+variant of a model in one shot.
 
-`v2` is the current **document-level** corpus mix: **45 042
-documents** in total — 22 500 from Wikipedia, 22 500 from
-FineWeb-2 PL, and 42 long oasst threads (the public oasst-1 dump
-yielded fewer Polish-tagged threads than the 5 000-doc target —
-the `_50k` in the background names refers to the *target* mix
-size, the actual is 45 042; ~41 M tokens). Every input row was
-a whole document, truncated to 30 000 tokens with the Qwen3
-tokenizer before sending to the embedder.
+## The `pl_mixed50k` corpus
 
-A future `v3` will ship **paragraph-level** backgrounds fitted on
-overlapping 512-token chunks of the same source corpus. They will
-not be drop-in replacements — see
-[`../GOTCHAS.md`](../GOTCHAS.md#1-background-granularity-must-match-index-granularity).
+The current corpus is **50 042 documents**: 22 500 Wikipedia +
+27 500 FineWeb-2 PL + 42 oasst threads, ~46 M tokens, every doc
+≥500 chars and truncated to 30 000 tokens with the Qwen3 tokenizer
+before embedding. The oasst tier was originally targeted at 5 000
+threads but the public oasst-1 dump yields only 42 Polish-tagged
+ones, so the FineWeb tier was extended by 5 000 to get back to a
+genuine 50k.
+
+Two granularities are planned:
+
+- `_doc_` — one embedding per whole document. **Shipped now.**
+- `_chunks_` — one embedding per overlapping 512-token chunk
+  produced by `scripts/lib/chunker.py`. **Coming next** (the
+  parquet is already on disk; embed + fit pending). Not a
+  drop-in replacement for `_doc_` — see
+  [`../GOTCHAS.md`](../GOTCHAS.md#1-background-granularity-must-match-index-granularity).
 
 ## Picking the right one for your pipeline
 
 | Your model | Your effective dim (after MRL slice + L2 renorm) | Use |
 |---|---:|---|
-| Qwen3-Embedding-4B | 2560 (native) | `…_qwen3-4b_mrl2560/` |
-| Qwen3-Embedding-4B | 1536 | `…_qwen3-4b_mrl1536/` |
-| Qwen3-Embedding-4B | 1024 | `…_qwen3-4b_mrl1024/` |
-| Qwen3-Embedding-4B | 768 | `…_qwen3-4b_mrl768/` |
-| Qwen3-Embedding-4B | 512 | `…_qwen3-4b_mrl512/` |
-| Qwen3-Embedding-8B | 4096 (native) | `…_qwen3-8b_mrl4096/` *(coming)* |
-| Qwen3-Embedding-8B | 3072 / 2048 / 1024 / 768 / 512 | `…_qwen3-8b_mrl<dim>/` *(coming)* |
+| Qwen3-Embedding-4B | 2560 (native) | `…_qwen3_4b_mrl2560/` |
+| Qwen3-Embedding-4B | 1536 | `…_qwen3_4b_mrl1536/` |
+| Qwen3-Embedding-4B | 1024 | `…_qwen3_4b_mrl1024/` |
+| Qwen3-Embedding-4B | 768 | `…_qwen3_4b_mrl768/` |
+| Qwen3-Embedding-4B | 512 | `…_qwen3_4b_mrl512/` |
+| Qwen3-Embedding-8B | 4096 (native) | `…_qwen3_8b_mrl4096/` *(coming)* |
+| Qwen3-Embedding-8B | 3072 / 2048 / 1024 / 768 / 512 | `…_qwen3_8b_mrl<dim>/` *(coming)* |
 
 If you slice to a dim we don't ship (e.g. 256, or 2048 against 4B),
 refit yourself — see [Rebuild from scratch](../README.md#rebuild-from-scratch-or-fit-your-own-model)

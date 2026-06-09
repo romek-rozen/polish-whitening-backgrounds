@@ -6,28 +6,27 @@ Pre-fitted whitening artefacts (`W_A.npy`, `mu_A.npy`, `eigvals_A.npy`)
 ready to drop into siteFocus / any retrieval pipeline that uses
 [`Qwen/Qwen3-Embedding-4B`](https://huggingface.co/Qwen/Qwen3-Embedding-4B)
 or [`Qwen/Qwen3-Embedding-8B`](https://huggingface.co/Qwen/Qwen3-Embedding-8B)
-on Polish text. Skip the corpus sampling, the 45k embeddings, and the
+on Polish text. Skip the corpus sampling, the 50k embeddings, and the
 ZCA SVD — clone, load, apply.
 
 License: [CC-BY-4.0](LICENSE)
 
-> **🚧 Rebuild in progress (2026-06-09).**
-> `backgrounds/` is **empty on `main` right now** — the v2 corpus
-> (wiki 22.5k + FineWeb-2 PL 22.5k + oasst ~42 = 45 042 docs,
-> paragraph-only ≥500 chars, token-precise truncation under Qwen3's
-> 32k context) is being embedded against both Qwen3-Embedding models
-> on OpenRouter. When it finishes this repo will ship **11
-> backgrounds**:
+> **Status (2026-06-09):** 5 of 11 backgrounds shipped (all Qwen3-4B
+> MRL refits). Qwen3-8B is mid-embed; its 6 MRL refits will land in
+> the same release. The corpus is `pl_mixed50k` — 22 500 Wikipedia +
+> 27 500 FineWeb-2 PL + 42 oasst threads = **50 042 docs**, full
+> paragraphs ≥500 chars, token-precise truncation under Qwen3's
+> 32k context.
 >
 > | Model | Dim → name |
 > |---|---|
-> | Qwen3-Embedding-4B | `polish_mixed_50k_v2_qwen3-4b_mrl{2560, 1536, 1024, 768, 512}` |
-> | Qwen3-Embedding-8B | `polish_mixed_50k_v2_qwen3-8b_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+> | Qwen3-Embedding-4B ✅ | `qwen3_4b_pl_mixed50k_doc_mrl{2560, 1536, 1024, 768, 512}` |
+> | Qwen3-Embedding-8B ⏳ | `qwen3_8b_pl_mixed50k_doc_mrl{4096, 3072, 2048, 1024, 768, 512}` |
 >
-> The earlier `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`,
-> `corpus205_n3155` and `polish_smoke_1500` are gone from `main` —
-> use git history if you need them. Watch
-> [`REGISTRY.md`](REGISTRY.md) for the live count.
+> Earlier `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`, `corpus205_n3155`
+> and `polish_smoke_1500` were retired (different corpus, no
+> granularity tag in the name) — use git history if you need them.
+> Watch [`REGISTRY.md`](REGISTRY.md) for the live count.
 
 > ⚠️ **Granularity matters.** The backgrounds here are fitted on
 > **whole documents** (one embedding per FineWeb-2 / wiki / oasst
@@ -78,13 +77,13 @@ from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
 # After the rebuild this returns 11 names:
-# ['polish_mixed_50k_v2_qwen3-4b_mrl2560',
-#  'polish_mixed_50k_v2_qwen3-4b_mrl1536',  '..._mrl1024', '..._mrl768', '..._mrl512',
-#  'polish_mixed_50k_v2_qwen3-8b_mrl4096',
-#  'polish_mixed_50k_v2_qwen3-8b_mrl3072',  '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512']
+# ['qwen3_4b_pl_mixed50k_doc_mrl2560',
+#  'qwen3_4b_pl_mixed50k_doc_mrl1536',  '..._mrl1024', '..._mrl768', '..._mrl512',
+#  'qwen3_8b_pl_mixed50k_doc_mrl4096',
+#  'qwen3_8b_pl_mixed50k_doc_mrl3072',  '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512']
 
 # Pair the background with the model + slice dimension you actually use.
-bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
+bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
 print(bg.dim, bg.W.shape, bg.mu.shape)
 # 1024 (1024, 1024) (1024,)
 
@@ -112,7 +111,7 @@ from loader import load_background
 from your_pipeline import embed_qwen3_4b
 
 # 1. Load once at startup.
-bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
+bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
 
 def encode(texts):
     """Embed → MRL slice → L2 renorm → ZCA whiten."""
@@ -169,7 +168,7 @@ Pair each one only with vectors sliced + renormalised the same way:
 x_full = embed("...")                     # (2560,) from Qwen3-4B
 x_1024 = x_full[:1024]                    # MRL slice
 x_1024 /= np.linalg.norm(x_1024)          # renorm to unit L2
-bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
+bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
 x_white = bg.apply(x_1024[None])[0]       # whitened in MRL-1024 space
 ```
 

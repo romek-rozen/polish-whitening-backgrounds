@@ -6,27 +6,28 @@ Gotowe artefakty whiteningu (`W_A.npy`, `mu_A.npy`, `eigvals_A.npy`) do
 podpięcia w siteFocus / dowolnym pipelinie retrievalu używającym
 [`Qwen/Qwen3-Embedding-4B`](https://huggingface.co/Qwen/Qwen3-Embedding-4B)
 lub [`Qwen/Qwen3-Embedding-8B`](https://huggingface.co/Qwen/Qwen3-Embedding-8B)
-na tekstach polskich. Oszczędzasz sobie próbkowanie korpusu, 45k
+na tekstach polskich. Oszczędzasz sobie próbkowanie korpusu, 50k
 embeddingów i ZCA SVD — klonujesz, ładujesz, używasz.
 
 Licencja: [CC-BY-4.0](LICENSE)
 
-> **🚧 Trwa przebudowa (2026-06-09).**
-> `backgrounds/` jest **teraz pusty na `main`** — korpus v2
-> (wiki 22.5k + FineWeb-2 PL 22.5k + oasst ~42 = 45 042 dokumentów,
-> tylko akapity ≥500 znaków, precyzyjne obcinanie po tokenach pod
-> oknem 32k Qwen3) jest embeddowany przeciw obu modelom Qwen3-Embedding
-> przez OpenRouter. Po zakończeniu repo będzie dostarczać **11 teł**:
+> **Status (2026-06-09):** 5 z 11 teł gotowych (wszystkie warianty
+> MRL dla Qwen3-4B). Qwen3-8B trwa embed, jego 6 refitów MRL trafi
+> do tego samego release'u. Korpus to `pl_mixed50k` — 22 500
+> Wikipedia + 27 500 FineWeb-2 PL + 42 wątki oasst = **50 042
+> dokumentów**, akapity ≥500 znaków, precyzyjne obcinanie po
+> tokenach pod oknem 32k Qwen3.
 >
 > | Model | Wymiar → nazwa |
 > |---|---|
-> | Qwen3-Embedding-4B | `polish_mixed_50k_v2_qwen3-4b_mrl{2560, 1536, 1024, 768, 512}` |
-> | Qwen3-Embedding-8B | `polish_mixed_50k_v2_qwen3-8b_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+> | Qwen3-Embedding-4B ✅ | `qwen3_4b_pl_mixed50k_doc_mrl{2560, 1536, 1024, 768, 512}` |
+> | Qwen3-Embedding-8B ⏳ | `qwen3_8b_pl_mixed50k_doc_mrl{4096, 3072, 2048, 1024, 768, 512}` |
 >
-> Poprzednie `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`,
-> `corpus205_n3155` i `polish_smoke_1500` zostały usunięte z `main` —
-> sięgnij do historii gita jeśli ich potrzebujesz. Aktualny stan
-> licznika znajdziesz w [`REGISTRY.md`](REGISTRY.md).
+> Wcześniejsze `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`,
+> `corpus205_n3155` i `polish_smoke_1500` zostały wycofane (inny
+> korpus, brak tagu granularności w nazwie) — sięgnij do historii
+> gita jeśli ich potrzebujesz. Aktualny stan w
+> [`REGISTRY.md`](REGISTRY.md).
 
 > ⚠️ **Granularność ma znaczenie.** Tła są fitowane na **całych
 > dokumentach** (jeden embedding na doc z FineWeb-2 / wiki / oasst).
@@ -81,13 +82,13 @@ from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
 # Po skończeniu przebudowy zwróci 11 nazw:
-# ['polish_mixed_50k_v2_qwen3-4b_mrl2560',
-#  'polish_mixed_50k_v2_qwen3-4b_mrl1536',  '..._mrl1024', '..._mrl768', '..._mrl512',
-#  'polish_mixed_50k_v2_qwen3-8b_mrl4096',
-#  'polish_mixed_50k_v2_qwen3-8b_mrl3072',  '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512']
+# ['qwen3_4b_pl_mixed50k_doc_mrl2560',
+#  'qwen3_4b_pl_mixed50k_doc_mrl1536',  '..._mrl1024', '..._mrl768', '..._mrl512',
+#  'qwen3_8b_pl_mixed50k_doc_mrl4096',
+#  'qwen3_8b_pl_mixed50k_doc_mrl3072',  '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512']
 
 # Dopasuj tło do faktycznie używanej kombinacji (model + slice wymiaru).
-bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
+bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
 print(bg.dim, bg.W.shape, bg.mu.shape)
 # 1024 (1024, 1024) (1024,)
 
@@ -115,7 +116,7 @@ from loader import load_background
 from your_pipeline import embed_qwen3_4b
 
 # 1. Załaduj raz na starcie.
-bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
+bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
 
 def encode(texts):
     """Embed → MRL slice → L2 renorm → ZCA whiten."""
@@ -172,7 +173,7 @@ ten sam sposób:
 x_full = embed("...")                     # (2560,) z Qwen3-4B
 x_1024 = x_full[:1024]                    # MRL slice
 x_1024 /= np.linalg.norm(x_1024)          # renorm do unit L2
-bg = load_background("polish_mixed_50k_v2_qwen3-4b_mrl1024")
+bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
 x_white = bg.apply(x_1024[None])[0]       # wybielenie w przestrzeni MRL-1024
 ```
 
