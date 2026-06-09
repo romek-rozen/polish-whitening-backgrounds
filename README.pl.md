@@ -97,14 +97,26 @@ Mieszanie wektorów MRL-1024 z tłem pełnowymiarowym jest niezdefiniowane
 ## Pochodzenie danych
 
 Wszystkie tła zostały dopasowane na zbalansowanym miksie polskich
-korpusów tekstowych:
+korpusów tekstowych (v2 — usunięto źródła czysto-zdaniowe, mC4
+zastąpione przez pre-cleaned FineWeb-2):
 
 | Źródło | Liczba dokumentów | Uwagi |
 |---|---:|---|
-| Wikipedia PL | 20 000 | [`wikimedia/wikipedia`](https://huggingface.co/datasets/wikimedia/wikipedia) konfiguracja `20231101.pl` |
-| mC4 PL | 20 000 | [`allenai/c4`](https://huggingface.co/datasets/allenai/c4) konfiguracja `pl` |
-| KLEJ | 5 000 | podzbiory NKJP-NER, DYK, CDSC-R |
-| OASST PL | 156 | [`OpenAssistant/oasst1`](https://huggingface.co/datasets/OpenAssistant/oasst1) przefiltrowane `lang == 'pl'` |
+| Wikipedia PL | 22 500 | [`wikimedia/wikipedia`](https://huggingface.co/datasets/wikimedia/wikipedia) konfiguracja `20231101.pl` |
+| FineWeb-2 PL | 22 500 | [`HuggingFaceFW/fineweb-2`](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) konfiguracja `pol_Latn` — polski web crawl wyciągnięty przez trafilatura, filtrowany językowo/jakościowo, dedup minhashem już u źródła |
+| OASST PL | ~156 | [`OpenAssistant/oasst1`](https://huggingface.co/datasets/OpenAssistant/oasst1) przefiltrowane `lang == 'pl'` (cel 5 000, w praktyce ~156) |
+
+Wszystkie źródła wymuszają minimum 500 znaków per dokument (akapit,
+nie zdanie). Seed = 42, streaming shuffle, deterministycznie.
+
+Wcześniejsze buildy (zachowane w historii gita) zawierały dodatkowo
+**KLEJ** (NKJP-NER + DYK + CDSC-R) i używały **mC4** zamiast FineWeb-2.
+KLEJ został usunięty bo median długości to 78 znaków — pojedyncze
+zdania przesuwają rozkład embeddingów daleko od typowego celu retrievalu
+(akapity). mC4 zamieniony bo jego surowy tekst niesie boilerplate (menu,
+breadcrumbs, timestampy) z naiwnej ekstrakcji HTML→tekst — i nie da się
+tego naprawić downstream (HTML już dawno wyrzucony). FineWeb-2 dostarcza
+tekst już wyciągnięty przez [trafilatura](https://trafilatura.readthedocs.io).
 
 Każdy `*.meta.json` zapisuje dokładne `sample_size_actual`,
 `corpus_fingerprint_sha256`, seed i diagnostyczne wartości własne.

@@ -95,20 +95,30 @@ means / covariance are not compatible.
 
 ## Provenance
 
-All backgrounds were fitted on a balanced Polish text mix:
+All backgrounds were fitted on a balanced Polish text mix (v2 —
+sentence-only KLEJ replaced with more paragraph content, noisier mC4
+swapped for the pre-cleaned FineWeb-2):
 
 | Source | Docs | Notes |
 |---|---:|---|
-| Wikipedia PL | 20 000 | [`wikimedia/wikipedia`](https://huggingface.co/datasets/wikimedia/wikipedia) config `20231101.pl` |
-| mC4 PL | 20 000 | [`allenai/c4`](https://huggingface.co/datasets/allenai/c4) config `pl` |
-| KLEJ | 5 000 | NKJP-NER, DYK, CDSC-R subsets |
-| OASST PL | 156 | [`OpenAssistant/oasst1`](https://huggingface.co/datasets/OpenAssistant/oasst1) filtered `lang == 'pl'` |
+| Wikipedia PL | 22 500 | [`wikimedia/wikipedia`](https://huggingface.co/datasets/wikimedia/wikipedia) config `20231101.pl` |
+| FineWeb-2 PL | 22 500 | [`HuggingFaceFW/fineweb-2`](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) config `pol_Latn` — Polish web crawl extracted with trafilatura + language/quality filtered + minhash-deduped at source |
+| OASST PL | ~156 | [`OpenAssistant/oasst1`](https://huggingface.co/datasets/OpenAssistant/oasst1) filtered `lang == 'pl'` (target 5 000, yields ~156 in practice) |
+
+All sources enforce a 500-char minimum per doc (paragraph, not
+sentence). Seed = 42, streaming shuffle, deterministic.
+
+Earlier builds (now in git history) also included **KLEJ** (NKJP-NER +
+DYK + CDSC-R) and used **mC4** instead of FineWeb-2. KLEJ was dropped
+because its median item is 78 characters — single sentences skew the
+embedding distribution away from the paragraph-level retrieval target.
+mC4 was swapped because its raw text carries menu / breadcrumb /
+timestamp boilerplate from a naive HTML→text extraction that we can't
+fix downstream (the HTML is gone). FineWeb-2 ships text already
+extracted with [trafilatura](https://trafilatura.readthedocs.io).
 
 Each background's `*.meta.json` records the exact `sample_size_actual`,
 `corpus_fingerprint_sha256`, seed, and diagnostic eigenvalues.
-
-The full sampling + embedding + fit recipe is open-sourced (script
-names are referenced in the meta files for traceability).
 
 ## Repo layout
 

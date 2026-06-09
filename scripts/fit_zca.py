@@ -49,21 +49,40 @@ def _l2_renorm(x: np.ndarray) -> np.ndarray:
     return x / n
 
 
-def fit(chunks_dir: Path, eps: float = 1e-6) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
+def fit(chunks_dir: Path, eps: float = 1e-6,
+        truncate_to: int | None = None,
+        ) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
     chunk_paths = sorted(chunks_dir.glob("chunk_*.npy"))
     if not chunk_paths:
         raise SystemExit(f"no chunks in {chunks_dir}")
 
     head = np.load(chunk_paths[0], mmap_mode="r")
-    dim = head.shape[1]
-    logger.info("source: %d chunks, dim=%d", len(chunk_paths), dim)
+    native_dim = head.shape[1]
+    if truncate_to and truncate_to > 0:
+        if truncate_to > native_dim:
+            raise SystemExit(
+                f"--truncate-to {truncate_to} > native dim {native_dim}"
+            )
+        dim = truncate_to
+        logger.info(
+            "source: %d chunks, native_dim=%d, MRL slice → %d",
+            len(chunk_paths), native_dim, dim,
+        )
+    else:
+        dim = native_dim
+        logger.info("source: %d chunks, dim=%d", len(chunk_paths), dim)
+
+    def _load_sliced(cp: Path) -> np.ndarray:
+        x = np.load(cp).astype(np.float32, copy=False)
+        if dim < native_dim:
+            x = x[:, :dim]
+        return _l2_renorm(x)
 
     t0 = time.perf_counter()
     n_total = 0
     sum_vec = np.zeros(dim, dtype=np.float64)
     for cp in chunk_paths:
-        x = np.load(cp).astype(np.float32, copy=False)
-        x = _l2_renorm(x)
+        x = _load_sliced(cp)
         sum_vec += x.sum(axis=0, dtype=np.float64)
         n_total += x.shape[0]
     mu = (sum_vec / n_total).astype(np.float32)
@@ -72,8 +91,7 @@ def fit(chunks_dir: Path, eps: float = 1e-6) -> tuple[np.ndarray, np.ndarray, np
     t1 = time.perf_counter()
     cov = np.zeros((dim, dim), dtype=np.float64)
     for cp in chunk_paths:
-        x = np.load(cp).astype(np.float32, copy=False)
-        x = _l2_renorm(x)
+        x = _load_sliced(cp)
         xc = (x - mu).astype(np.float64, copy=False)
         cov += xc.T @ xc
     cov /= (n_total - 1)
@@ -92,6 +110,8 @@ def fit(chunks_dir: Path, eps: float = 1e-6) -> tuple[np.ndarray, np.ndarray, np
         "n_total": int(n_total),
         "eps": eps,
         "dim": int(dim),
+        "native_dim": int(native_dim),
+        "mrl_truncated": bool(dim < native_dim),
         "rank_deficient_eigvals": rank_def,
         "rank_full_eigvals": int(dim - rank_def),
         "top_ev_ratio_pre": float(eigvals.max() / max(eigvals.mean(), 1e-12)),
@@ -180,6 +200,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=BG_ROOT,
                     help="Root for backgrounds/ (default: ./backgrounds).")
     ap.add_argument("--eps", type=float, default=1e-6)
+    ap.add_argument(
+        "--truncate-to", type=int, default=None,
+        help="MRL refit: slice each chunk to the first N columns and "
+             "L2-renormalise row-wise before fitting ZCA. Default: use "
+             "native dim from chunk_0000.npy.",
+    )
     args = ap.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO,
@@ -188,7 +214,9 @@ def main(argv: list[str] | None = None) -> int:
     out_dir = args.out / args.name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    W, mu, eigvals, diag = fit(args.chunks, eps=args.eps)
+    W, mu, eigvals, diag = fit(
+        args.chunks, eps=args.eps, truncate_to=args.truncate_to,
+    )
     np.save(out_dir / "W_A.npy", W)
     np.save(out_dir / "mu_A.npy", mu)
     np.save(out_dir / "eigvals_A.npy", eigvals)

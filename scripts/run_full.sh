@@ -45,10 +45,15 @@ fi
 
 MODELS_DEFAULT="qwen/qwen3-embedding-4b qwen/qwen3-embedding-8b"
 MODELS="${MODELS:-$MODELS_DEFAULT}"
-NAME_PREFIX="${NAME_PREFIX:-polish_mixed_50k_v1}"
+NAME_PREFIX="${NAME_PREFIX:-polish_mixed_50k_v2}"
 START_BATCH="${START_BATCH:-16}"
 MAX_BATCH="${MAX_BATCH:-32}"
 PROVIDER_ORDER="${PROVIDER_ORDER:-nebius,deepinfra}"
+
+# MRL dims to fit per model. Native dim is always included.
+# Override with DIMS_4B / DIMS_8B (space-separated).
+DIMS_4B="${DIMS_4B:-2560 1536 1024 768 512}"
+DIMS_8B="${DIMS_8B:-4096 3072 2048 1024 768 512}"
 
 CORPUS_ARGS=()
 if [ -n "${MAX_CHARS:-}" ]; then
@@ -63,10 +68,18 @@ short() {
     echo "$1" | sed -E 's|^qwen/qwen3-embedding-([0-9a-z]+)$|qwen3-\1|; s|/|-|g'
 }
 
+dims_for() {
+    # qwen3-4b → DIMS_4B,  qwen3-8b → DIMS_8B
+    case "$1" in
+        qwen3-4b) echo "$DIMS_4B" ;;
+        qwen3-8b) echo "$DIMS_8B" ;;
+        *) echo "" ;;
+    esac
+}
+
 for MODEL in $MODELS; do
     SHORT="$(short "$MODEL")"
     SLUG="$(echo "$MODEL" | tr '/' '_' | tr ':' '_')"
-    NAME="${NAME_PREFIX}_${SHORT}_nocap"
     echo "==> Phase 2: embed $MODEL  →  data/chunks_${SLUG}/"
     $PY scripts/embed_via_openrouter.py \
         --model "$MODEL" \
@@ -74,11 +87,20 @@ for MODEL in $MODELS; do
         --max-batch "$MAX_BATCH" \
         --provider-order "$PROVIDER_ORDER"
 
-    echo "==> Phase 3: fit ZCA $MODEL  →  backgrounds/${NAME}/"
-    $PY scripts/fit_zca.py \
-        --chunks "data/chunks_${SLUG}" \
-        --name "$NAME" \
-        --model "$MODEL"
+    DIMS="$(dims_for "$SHORT")"
+    if [ -z "$DIMS" ]; then
+        echo "WARN: no DIMS list for $SHORT — fitting native only" >&2
+        DIMS=""
+    fi
+    for DIM in $DIMS; do
+        NAME="${NAME_PREFIX}_${SHORT}_mrl${DIM}"
+        echo "==> Phase 3: fit ZCA $MODEL  dim=${DIM}  →  backgrounds/${NAME}/"
+        $PY scripts/fit_zca.py \
+            --chunks "data/chunks_${SLUG}" \
+            --name "$NAME" \
+            --model "$MODEL" \
+            --truncate-to "$DIM"
+    done
 done
 
 echo "==> Phase 4: regenerate registry"

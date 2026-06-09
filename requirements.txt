@@ -8,3 +8,7 @@ tqdm>=4.66
 # Token-precise per-doc truncation (pulls Qwen3 tokenizer.json from HF).
 huggingface_hub>=0.24
 tokenizers>=0.20
+# Optional: HTML→clean-text extraction for users who want to fit
+# backgrounds on their own scraped pages.  Not used by the default
+# corpus mix (FineWeb-2 PL ships already-cleaned text).
+trafilatura>=2.0

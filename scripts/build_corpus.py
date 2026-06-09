@@ -4,14 +4,17 @@ Samples a deterministic mix of public Polish corpora and writes them to
 ``data/corpus.parquet`` as ``{source, text, sha, n_chars}`` rows. By
 default applies **no character cap** — full documents go through.
 
-Mix (matches the original ``polish_mixed_50k_v1`` background so that
-downstream comparisons are apples-to-apples):
+Mix v2 (2026-06-09 — sentence-only sources dropped):
 
-    wikipedia: 20 000 docs (wikimedia/wikipedia config 20231101.pl)
-    mc4:       20 000 docs (allenai/c4 config pl)
-    klej:       5 000 docs (allegro/klej-nkjp-ner + dyk + cdsc-r)
+    wikipedia: 22 500 docs (wikimedia/wikipedia config 20231101.pl)
+    fineweb:   22 500 docs (HuggingFaceFW/fineweb-2 config pol_Latn —
+                            Polish web pre-cleaned with trafilatura by HF)
     oasst:      5 000 docs (OpenAssistant/oasst1 filtered lang=='pl';
                             yields ~156 in practice on the public dump)
+
+All sources enforce MIN_DOC_CHARS = 500 (paragraph, not sentence).
+KLEJ (NKJP-NER + DYK + CDSC-R) was dropped — median item was 78 chars,
+too short to represent the paragraph-level retrieval target.
 
 Idempotent: skipped if ``data/corpus.parquet`` already exists.
 
@@ -32,7 +35,6 @@ import sys
 from pathlib import Path
 from typing import Iterator
 
-import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 from tqdm import tqdm
@@ -42,12 +44,23 @@ DATA_DIR = REPO_ROOT / "data"
 
 logger = logging.getLogger("build_corpus")
 
+# Mix v2 (2026-06-09):
+#   - KLEJ dropped: NKJP-NER/DYK/CDSC-R items are single sentences
+#     (median 78 chars) — they skew the embedding distribution away
+#     from the paragraph-level retrieval target.
+#   - mc4 → fineweb-2: HuggingFaceFW/fineweb-2 (config `pol_Latn`) is
+#     a curated Polish web crawl that was already extracted with
+#     trafilatura + language/quality filtered + minhash-deduped by
+#     HuggingFace.  We don't have to re-run trafilatura ourselves —
+#     mc4's raw text doesn't carry HTML so we couldn't anyway.
+#   - MIN_DOC_CHARS=500 floor enforces "paragraph, not sentence".
 DEFAULT_MIX = {
-    "wikipedia": 20000,
-    "mc4":       20000,
-    "klej":       5000,
+    "wikipedia": 22500,
+    "fineweb":   22500,
     "oasst":      5000,
 }
+
+MIN_DOC_CHARS = 500
 
 
 def _maybe_truncate(text: str, max_chars: int | None) -> str:
@@ -63,52 +76,30 @@ def _wiki_iter(seed: int, max_chars: int | None) -> Iterator[tuple[str, str]]:
     ds = ds.shuffle(seed=seed, buffer_size=10_000)
     for row in ds:
         text = (row.get("text") or "").strip()
-        if len(text) < 200:
+        if len(text) < MIN_DOC_CHARS:
             continue
         yield "wikipedia", _maybe_truncate(text, max_chars)
 
 
-def _mc4_iter(seed: int, max_chars: int | None) -> Iterator[tuple[str, str]]:
+def _fineweb_iter(seed: int, max_chars: int | None) -> Iterator[tuple[str, str]]:
+    """HuggingFaceFW/fineweb-2 — Polish web crawl, pre-cleaned with
+    trafilatura + language/quality filtered + minhash-deduped at source.
+    Replaces the noisier allenai/c4 (mc4) sample.
+    """
     from datasets import load_dataset
-    ds = load_dataset("allenai/c4", name="pl",
+    ds = load_dataset("HuggingFaceFW/fineweb-2", name="pol_Latn",
                       split="train", streaming=True)
     ds = ds.shuffle(seed=seed, buffer_size=10_000)
     for row in ds:
         text = (row.get("text") or "").strip()
-        if len(text) < 200:
+        if len(text) < MIN_DOC_CHARS:
             continue
-        yield "mc4", _maybe_truncate(text, max_chars)
-
-
-def _klej_iter(seed: int, max_chars: int | None) -> Iterator[tuple[str, str]]:
-    """KLEJ — NKJP-NER + DYK + CDSC-R."""
-    from datasets import load_dataset
-    pool: list[tuple[str, str]] = []
-    sub_specs = [
-        ("allegro/klej-nkjp-ner", "sentence"),
-        ("allegro/klej-dyk", "question"),
-        ("allegro/klej-cdsc-r", "sentence_A"),
-        ("allegro/klej-cdsc-r", "sentence_B"),
-    ]
-    for repo, field in sub_specs:
-        try:
-            ds = load_dataset(repo, split="train")
-            for row in ds:
-                t = (row.get(field) or "").strip()
-                # KLEJ items are naturally short — keep a floor so we drop
-                # one-word artefacts, but skip the upper cap entirely when
-                # max_chars is None.
-                if len(t) < 50:
-                    continue
-                if max_chars is not None and len(t) > max_chars:
-                    continue
-                pool.append(("klej", _maybe_truncate(t, max_chars)))
-        except Exception as e:
-            logger.warning("klej sub %s failed: %s", repo, e)
-    rng = np.random.default_rng(seed)
-    rng.shuffle(pool)
-    for item in pool:
-        yield item
+        # Defensive quality gate — fineweb-2 carries a language_score and
+        # a top_langs list per doc. Skip anything weakly Polish.
+        score = row.get("language_score") or 0.0
+        if score and score < 0.5:
+            continue
+        yield "fineweb", _maybe_truncate(text, max_chars)
 
 
 def _oasst_iter(seed: int, max_chars: int | None) -> Iterator[tuple[str, str]]:
@@ -120,15 +111,14 @@ def _oasst_iter(seed: int, max_chars: int | None) -> Iterator[tuple[str, str]]:
         if row.get("lang") != "pl":
             continue
         text = (row.get("text") or "").strip()
-        if len(text) < 100:
+        if len(text) < MIN_DOC_CHARS:
             continue
         yield "oasst", _maybe_truncate(text, max_chars)
 
 
 SOURCES = {
     "wikipedia": _wiki_iter,
-    "mc4":       _mc4_iter,
-    "klej":      _klej_iter,
+    "fineweb":   _fineweb_iter,
     "oasst":     _oasst_iter,
 }
 
@@ -197,8 +187,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--max-chars", type=int, default=None,
                     help="Optional per-document char cap. Default: no cap.")
     ap.add_argument("--wiki", type=int, default=DEFAULT_MIX["wikipedia"])
-    ap.add_argument("--mc4", type=int, default=DEFAULT_MIX["mc4"])
-    ap.add_argument("--klej", type=int, default=DEFAULT_MIX["klej"])
+    ap.add_argument("--fineweb", type=int, default=DEFAULT_MIX["fineweb"])
     ap.add_argument("--oasst", type=int, default=DEFAULT_MIX["oasst"])
     args = ap.parse_args(argv)
 
@@ -206,8 +195,7 @@ def main(argv: list[str] | None = None) -> int:
                         format="%(asctime)s %(levelname)s %(name)s %(message)s")
     mix = {
         "wikipedia": args.wiki,
-        "mc4": args.mc4,
-        "klej": args.klej,
+        "fineweb": args.fineweb,
         "oasst": args.oasst,
     }
     build_corpus(args.out, mix=mix, seed=args.seed, max_chars=args.max_chars)

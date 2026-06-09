@@ -43,9 +43,12 @@ Still committed and untouched:
   `data/`, `.env`, `__pycache__`.
 
 Done locally but NOT YET committed:
-- `data/corpus.parquet` — 45 156 docs, no-cap, fresh HF sample, fingerprint
-  `1f8e9b122aafae10dfe946829dac01006b5460958fcd512de2da9f2589d10538`.
-  Lives in `data/` which is git-ignored. Safe to keep.
+- `data/corpus.parquet` — **v2** mix (wikipedia 22 500 + fineweb 22 500 +
+  oasst ~42 = 45 042 docs, 112.8 MB chars, 41.1 M tokens, fingerprint
+  `8e4549ffdbb7a406…`). The earlier v1 (with mc4 + KLEJ + a different
+  fingerprint `1f8e9b1…`) was wiped on 2026-06-09 after spotting that
+  KLEJ items are single sentences and mc4 text carries menu/breadcrumb
+  boilerplate. Lives in `data/` which is git-ignored. Safe to keep.
 - Qwen3 tokenizer cached in `~/.cache/huggingface/hub/models--Qwen--Qwen3-Embedding-{4B,8B}/`
   (~7 MB each, but tokenizer.json is byte-identical between 4B and 8B,
   sha256 `83cdf8c3a34f6886…`). First call to `_load_tokenizer()` pulls
@@ -185,10 +188,18 @@ After completion:
 
 ## Key constants worth knowing
 
-In `scripts/build_corpus.py`:
-- `DEFAULT_MIX = {"wikipedia": 20000, "mc4": 20000, "klej": 5000, "oasst": 5000}`
-- `seed = 42`, no per-doc cap by default.
-- OASST PL yields only ~156 docs (almost all conversations are English).
+In `scripts/build_corpus.py` (v2):
+- `DEFAULT_MIX = {"wikipedia": 22500, "fineweb": 22500, "oasst": 5000}`
+- `MIN_DOC_CHARS = 500` enforced on every source — paragraph not sentence.
+- `seed = 42`, no per-doc upper cap by default.
+- mC4 dropped in favour of `HuggingFaceFW/fineweb-2` config `pol_Latn`
+  (already extracted with trafilatura by HF, language/quality filtered,
+  minhash-deduped). Trafilatura is in `requirements.txt` but we don't
+  invoke it ourselves — fineweb-2 ships the output.
+- KLEJ dropped (single-sentence items skew the paragraph-level
+  distribution we want for retrieval whitening).
+- OASST PL yields only ~42 docs under the 500-char floor (was ~156
+  before the floor; OASST conversations are mostly short).
 
 In `scripts/embed_via_openrouter.py`:
 - `--max-tokens-per-doc 30000` (default) — pre-flight truncation via
@@ -204,9 +215,21 @@ In `scripts/run_full.sh`:
 - `MODELS="qwen/qwen3-embedding-4b qwen/qwen3-embedding-8b"`.
 - `NAME_PREFIX="polish_mixed_50k_v1"`.
 - `PROVIDER_ORDER="nebius,deepinfra"`.
+- `DIMS_4B="2560 1536 1024 768 512"` (5 fits, includes native 2560).
+- `DIMS_8B="4096 3072 2048 1024 768 512"` (6 fits, includes native
+  4096; 2560 / 1536 dropped because 8B was not MRL-trained at those
+  off-grid dims).
 
-Output naming: `<NAME_PREFIX>_<model-short>_nocap`, where
+Output naming: `<NAME_PREFIX>_<model-short>_mrl<DIM>`, where
 `<model-short>` strips `qwen/qwen3-embedding-` (e.g. `qwen3-4b`).
+The `_mrl<DIM>` suffix applies even when `<DIM>` equals the native
+dim — the fit is still produced by `fit_zca.py --truncate-to` and the
+naming convention stays uniform.
+
+In `scripts/fit_zca.py`:
+- `--truncate-to N` slices each chunk to the first N columns and
+  L2-renormalises row-wise before fitting ZCA. Used for MRL refits.
+  Without it the native dim is used.
 
 ## Safety rules
 
