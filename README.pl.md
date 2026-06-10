@@ -11,17 +11,20 @@ embeddingów i ZCA SVD — klonujesz, ładujesz, używasz.
 
 Licencja: [CC-BY-4.0](LICENSE)
 
-> **Status (2026-06-09):** 5 z 11 teł gotowych (wszystkie warianty
-> MRL dla Qwen3-4B). Qwen3-8B trwa embed, jego 6 refitów MRL trafi
-> do tego samego release'u. Korpus to `pl_mixed50k` — 22 500
-> Wikipedia + 27 500 FineWeb-2 PL + 42 wątki oasst = **50 042
-> dokumentów**, akapity ≥500 znaków, precyzyjne obcinanie po
-> tokenach pod oknem 32k Qwen3.
+> **Status (2026-06-10):** wszystkie 22 tła gotowe i w repo. Dwa
+> modele × dwie granularności × siatka MRL. Korpus to `pl_mixed50k`
+> — 22 500 Wikipedia + 27 500 FineWeb-2 PL + 42 wątki oasst =
+> **50 042 dokumentów** (akapity ≥500 znaków, ~46 M tokenów).
+> Granularność `chunks` to 129 181 chunków po 512 tokenów z
+> 64-tokenowym overlapem (RecursiveCharacterTextSplitter + merge
+> sub-100-char chunków + strip overlap fragments).
 >
-> | Model | Wymiar → nazwa |
-> |---|---|
-> | Qwen3-Embedding-4B ✅ | `qwen3_4b_pl_mixed50k_doc_mrl{2560, 1536, 1024, 768, 512}` |
-> | Qwen3-Embedding-8B ⏳ | `qwen3_8b_pl_mixed50k_doc_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+> | Model | Granularność | Refity MRL |
+> |---|---|---|
+> | Qwen3-Embedding-4B | `doc` | `qwen3_4b_pl_mixed50k_doc_mrl{2560, 1536, 1024, 768, 512}` |
+> | Qwen3-Embedding-4B | `chunks` | `qwen3_4b_pl_mixed50k_chunks_mrl{2560, 1536, 1024, 768, 512}` |
+> | Qwen3-Embedding-8B | `doc` | `qwen3_8b_pl_mixed50k_doc_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+> | Qwen3-Embedding-8B | `chunks` | `qwen3_8b_pl_mixed50k_chunks_mrl{4096, 3072, 2048, 1024, 768, 512}` |
 >
 > Wcześniejsze `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`,
 > `corpus205_n3155` i `polish_smoke_1500` zostały wycofane (inny
@@ -29,11 +32,12 @@ Licencja: [CC-BY-4.0](LICENSE)
 > gita jeśli ich potrzebujesz. Aktualny stan w
 > [`REGISTRY.md`](REGISTRY.md).
 
-> ⚠️ **Granularność ma znaczenie.** Tła są fitowane na **całych
-> dokumentach** (jeden embedding na doc z FineWeb-2 / wiki / oasst).
-> Jeśli Twój indeks retrievalowy trzyma paragrafy lub krótsze
-> kawałki, dopasuj własne tło na korpusie paragrafów — ten sam
-> pipeline. Dlaczego mieszanie granularności po cichu psuje
+> ⚠️ **Granularność ma znaczenie.** Warianty `doc` są fitowane na
+> **całych dokumentach** (jeden embedding na doc z FineWeb-2 / wiki
+> / oasst); warianty `chunks` — na 129 181 chunkach po 512 tokenów
+> z 64-tokenowym overlapem. Dopasuj granularność tła do
+> granularności tego, co rzeczywiście trzymasz w indeksie
+> retrievalowym. Dlaczego mieszanie granularności po cichu psuje
 > whitening: [GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity).
 
 ## Po co whitening?
@@ -81,11 +85,11 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
-# Po skończeniu przebudowy zwróci 11 nazw:
-# ['qwen3_4b_pl_mixed50k_doc_mrl2560',
-#  'qwen3_4b_pl_mixed50k_doc_mrl1536',  '..._mrl1024', '..._mrl768', '..._mrl512',
-#  'qwen3_8b_pl_mixed50k_doc_mrl4096',
-#  'qwen3_8b_pl_mixed50k_doc_mrl3072',  '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512']
+# Zwraca 22 nazwy — 4B/8B × doc/chunks × siatka MRL:
+# ['qwen3_4b_pl_mixed50k_doc_mrl2560', '..._mrl1536', '..._mrl1024', '..._mrl768', '..._mrl512',
+#  'qwen3_4b_pl_mixed50k_chunks_mrl2560', '..._mrl1536', '..._mrl1024', '..._mrl768', '..._mrl512',
+#  'qwen3_8b_pl_mixed50k_doc_mrl4096', '..._mrl3072', '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512',
+#  'qwen3_8b_pl_mixed50k_chunks_mrl4096', '..._mrl3072', '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512']
 
 # Dopasuj tło do faktycznie używanej kombinacji (model + slice wymiaru).
 bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
@@ -100,8 +104,7 @@ x_white = bg.apply(x)         # równoważne (x - bg.mu) @ bg.W
 ```
 
 Jedyną zależnością runtime jest `numpy`. Bez `git lfs`, bez
-zewnętrznych pobrań — po skończeniu przebudowy każdy plik będzie
-leżał wprost w repo.
+zewnętrznych pobrań — wszystkie 22 tła leżą wprost w repo.
 
 ## End-to-end: użycie w pipelinie retrievalu
 
@@ -194,10 +197,14 @@ pre-cleaned FineWeb-2):
 | FineWeb-2 PL | 22 500 | [`HuggingFaceFW/fineweb-2`](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) konfiguracja `pol_Latn` — polski web crawl wyciągnięty przez trafilatura, filtrowany językowo/jakościowo, dedup minhashem już u źródła |
 | OASST PL | ~42 | [`OpenAssistant/oasst1`](https://huggingface.co/datasets/OpenAssistant/oasst1) przefiltrowane `lang == 'pl'` (cel 5 000; ~42 dokumentów przebija próg 500 znaków w publicznym dumpcie) |
 
-Faktyczny korpus v2 w aktualnej przebudowie: **45 042 dokumentów,
-112.8 MB tekstu, fingerprint `8e4549ffdbb7a406…`**. Wszystkie źródła
-wymuszają minimum 500 znaków per dokument (akapit, nie zdanie).
-Seed = 42, streaming shuffle, deterministycznie.
+Faktyczny korpus `pl_mixed50k`: **50 042 dokumentów, ~46 M tokenów,
+fingerprint `6e9e965ffbb6dbe6…`**. Wszystkie źródła wymuszają
+minimum 500 znaków per dokument (akapit, nie zdanie). Seed = 42,
+streaming shuffle, deterministycznie. Dla wariantów `chunks` ten
+sam korpus jest cięty przez `lib.chunker`
+(RecursiveCharacterTextSplitter, chunk 512 tok / overlap 64 tok,
+merge sub-100-char chunków forward, strip overlap fragments) i
+daje **129 181 chunków** (~47.5 M tokenów po embed).
 
 Wcześniejsze buildy (zachowane w historii gita) zawierały dodatkowo
 **KLEJ** (NKJP-NER + DYK + CDSC-R) i używały **mC4** zamiast
@@ -209,14 +216,13 @@ HTML→tekst — i nie da się tego naprawić downstream (HTML już dawno
 wyrzucony). FineWeb-2 dostarcza tekst już wyciągnięty przez
 [trafilatura](https://trafilatura.readthedocs.io).
 
-Każdy `*.meta.json` (po skończeniu przebudowy) zapisuje dokładne
-`sample_size_actual`, `corpus_fingerprint_sha256`, seed i
-diagnostyczne wartości własne.
+Każdy `*.meta.json` zapisuje dokładne `sample_size_actual`,
+`corpus_fingerprint_sha256`, seed i diagnostyczne wartości własne.
 
 ## Struktura repo
 
 ```
-backgrounds/<name>/                   # zapełnione po przebudowie
+backgrounds/<name>/                   # 22 katalogi
   W_A.npy           # (dim, dim) float32  — zastosowanie: (x - mu) @ W
   mu_A.npy          # (dim,)    float32
   eigvals_A.npy     # (dim,)    float32   — diagnostyka, niepotrzebne przy apply
@@ -232,33 +238,54 @@ README.pl.md        # ten plik
 
 ## Jak zostały zbudowane
 
-Próbka mixu jak wyżej (seed=42), embedding każdego dokumentu przez
-OpenRouter na `Qwen/Qwen3-Embedding-4B` i `Qwen/Qwen3-Embedding-8B`,
-fit ZCA w dwóch streamingowych przejściach po chunkach (`μ = E[x]`,
-`Σ = E[(x-μ)(x-μ)ᵀ]`), a potem `W = U · diag(1/√(S + ε)) · Uᵀ` z
-`SVD(Σ)`, gdzie `ε=1e-6`. Bez GPU; przebudowa kosztuje ~$1 w
-OpenRouterze łącznie dla obu modeli.
+Próbka mixu jak wyżej (seed=42), embedding każdego dokumentu (oraz
+każdego chunka) przez OpenRouter na `Qwen/Qwen3-Embedding-4B` i
+`Qwen/Qwen3-Embedding-8B`, fit ZCA w dwóch streamingowych
+przejściach po chunkach (`μ = E[x]`, `Σ = E[(x-μ)(x-μ)ᵀ]`), a potem
+`W = U · diag(1/√(S + ε)) · Uᵀ` z `SVD(Σ)`, gdzie `ε=1e-6`. Bez
+GPU. Łączny koszt OpenRouter dla wszystkich 22 teł: **~$2.77**
+(4B doc $0.92, 8B doc $0.43, 4B chunks $0.95, 8B chunks $0.48 —
+routing OpenRoutera z `--ignore-providers siliconflow`, bo
+SiliconFlow jest 4× droższy).
 
 Per-dokumentowy kontekst egzekwowany jest precyzyjnie na etapie
 embed: każdy doc przechodzi przez tokenizer modelu (pobierany z HF —
-ten sam `tokenizer.json` dla 4B i 8B, sha256
-`83cdf8c3a34f6886…`) i jest obcinany do **30 000 tokenów** jeśli
-trzeba (~2k zapasu pod oknem 32k Qwen3). W korpusie v2 tylko **19 z
-45 042 dokumentów** przekracza ten limit; reszta przechodzi bez zmian.
+ten sam `tokenizer.json` dla 4B i 8B, byte-identyczny) i jest
+obcinany do **30 000 tokenów** jeśli trzeba (~2k zapasu pod oknem
+32k Qwen3). Dla wariantu `chunks` chunker robi twardy split przed
+embed (target 512 tok), więc cap nigdy nie pyka.
 
-Te same chunki embedów są potem fitowane pięć razy (4B) i sześć razy
-(8B) — raz na każdy wymiar MRL — przez slice chunka do `N` kolumn,
-L2-renormalizację wierszową i ponowny fit ZCA. Cała siatka MRL dla
-jednego modelu zajmuje znacznie mniej niż minutę na CPU po
-zakończeniu embed.
+Te same chunki embedów są potem fitowane pięć razy (4B) i sześć
+razy (8B) na każdą granularność — raz na każdy wymiar MRL — przez
+**refit od zera**: slice chunka do `N` kolumn, L2-renormalizacja
+wierszowa, ponowne obliczenie μ i Σ, świeże SVD. (Nie liczymy
+pełnego `W` raz i nie slice'ujemy go — to dałoby złe statystyki.)
+Cała siatka MRL dla jednej granularności jednego modelu zajmuje
+poniżej dwóch minut na CPU po zakończeniu embed.
+
+Tabela diagnostyki (`top_ev_ratio_pre` / `rank_deficient_eigvals`,
+od najwyższego do najniższego wymiaru MRL):
+
+| Tło | mrl4096 | mrl3072 | mrl2560 | mrl2048 | mrl1536 | mrl1024 | mrl768 | mrl512 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 4B doc    |   —    |   —    | 91.7/17 |   —    | 59.4/2 | 42.6/2 | 33.2/2 | 24.6/2 |
+| 4B chunks |   —    |   —    | 86.1/17 |   —    | 55.6/3 | 40.3/2 | 31.5/2 | 23.9/2 |
+| 8B doc    | 157.6/24 | 119.0/3 |   —    | 80.5/1 |   —    | 38.8/0 | 29.4/0 | 20.6/0 |
+| 8B chunks | 153.9/21 | 117.1/3 |   —    | 79.1/1 |   —    | 38.7/0 | 28.7/0 | 20.4/0 |
+
+Chunki są nieznacznie mniej anizotropowe niż dokumenty przy tym
+samym wymiarze (np. 86.1 vs 91.7 dla 4B mrl2560), bo 129k chunków
+próbkuje przestrzeń embedding bardziej równomiernie niż 50k całych
+dokumentów.
 
 ## Zbudować od zera (lub dopasować dla własnego modelu)
 
 Katalog `scripts/` zawiera kompletny pipeline który możesz odpalić z
 dowolnym kluczem OpenRouter i dla dowolnego modelu embeddującego
-wspieranego przez OpenRouter. Wall-time: ~1-3 h na model, koszt API
-~$0.5-1 na model dla 45k polskich dokumentów (~41 M tokenów po
-$0.01-0.02 / M w zależności od providera kierowanego przez OpenRouter).
+wspieranego przez OpenRouter. Wall-time: ~1-3 h na model na
+granularność, koszt API ~$0.4-1 na model dla 50k polskich
+dokumentów / 129k chunków (~46-48 M tokenów po $0.01-0.02 / M w
+zależności od providera kierowanego przez OpenRouter).
 
 ```bash
 git clone https://github.com/romek-rozen/polish-whitening-backgrounds.git
@@ -271,7 +298,7 @@ pip install -r requirements.txt
 cp .env.example .env
 $EDITOR .env             # wklej OPENROUTER_API_KEY=sk-or-...
 
-# 3. End-to-end: korpus → embed (4B + 8B) → fit (11 wymiarów MRL) → index.
+# 3. End-to-end: korpus(_chunks) → embed (4B + 8B) → fit (22 tła) → index.
 bash scripts/run_full.sh
 ```
 
@@ -280,6 +307,7 @@ Co robi każdy skrypt:
 | Skrypt | Zastosowanie |
 |---|---|
 | `scripts/build_corpus.py` | Próbkuje mix polski (wiki + FineWeb-2 PL + oasst) z seed=42 i progiem 500 znaków na akapit. Zapisuje `data/corpus.parquet`. Default: brak górnego capa. |
+| `scripts/build_corpus_chunks.py` | Tnie `data/corpus.parquet` przez `lib.chunker` (512 tok / 64 tok overlap, merge sub-100-char, strip overlap fragments). Zapisuje `data/corpus_chunks.parquet` (129 181 chunków). |
 | `scripts/embed_via_openrouter.py` | Embedduje `corpus.parquet` przez OpenRouter. Wstępne, precyzyjne obcinanie po tokenach pod okno kontekstu modelu (domyślnie 30 000 tokenów, tokenizer Qwen3 pobierany z HF — zmiana przez `--max-tokens-per-doc` i `--tokenizer-repo`). Adaptacyjny batch (start 16, połowa przy 429/5xx, rośnie po seriach sukcesów). Idempotentny: resume z najwyższego istniejącego chunka. Pisze `data/chunks_<slug>/*.npy` plus per-call `cost_report_<slug>.json`. |
 | `scripts/fit_zca.py` | Dwa streamingowe pass-y (μ, Σ) po chunkach + SVD. Opcjonalne `--truncate-to N` obcina każdy chunk do `N` kolumn i ponownie renormalizuje przed fitem, do refitów MRL. Pisze `backgrounds/<name>/{W_A.npy, mu_A.npy, eigvals_A.npy, *.meta.json}`. |
 | `scripts/index_backgrounds.py` | Regeneruje `REGISTRY.md` + `registry.json`. Wywoływane przez `run_full.sh`. |

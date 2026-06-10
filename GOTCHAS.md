@@ -28,13 +28,17 @@ Why it matters:
   transform, but it stops being the *isotropisation* you wanted —
   some directions get over-corrected, others under-corrected.
 
-The backgrounds currently in this repo are **document-level**
-(one embedding per FineWeb-2 / wiki / oasst document, truncated to 30k
-tokens). If you index paragraphs, fit your own background on a
-paragraph corpus — same pipeline, just split the input parquet first.
+This repo ships **both granularities** side-by-side:
 
-A future v3 may ship paragraph-level backgrounds side-by-side; until
-then they don't exist and you shouldn't fake one by truncating ours.
+- `*_doc_mrl*` — one embedding per FineWeb-2 / wiki / oasst document,
+  truncated to 30k tokens (50 042 docs).
+- `*_chunks_mrl*` — one embedding per 512-token chunk with 64-token
+  overlap, produced by `lib.chunker` (129 181 chunks from the same
+  50 042 docs).
+
+Pick the variant whose granularity matches what your retriever
+indexes. Don't whiten chunk embeddings with a `_doc_` background or
+vice versa.
 
 ## 2. MRL backgrounds are *not* the same as truncating a full-dim background
 
@@ -78,11 +82,11 @@ model's own `tokenizer.json` and truncates to 30 000 tokens before
 sending. If you bypass `lib.tokenizer.resolve_and_apply_token_cap`,
 expect ~0.1% of long docs to silently turn into zero vectors.
 
-## 6. Paragraph splitter for v3 must use sentence boundaries + overlap
+## 6. Paragraph splitter (chunks variant) uses sentence boundaries + overlap
 
-The v2 backgrounds embed **whole documents**. The planned v3 backgrounds
-will embed **chunks** for paragraph-level retrieval. The chunker must
-respect three rules:
+The `_doc_` backgrounds embed **whole documents**. The `_chunks_`
+backgrounds embed **chunks** for paragraph-level retrieval, produced
+by `lib.chunker`. The chunker respects three rules:
 
 1. **Split on sentence boundaries, never mid-word.** Cutting a word
    in half (`Aminokwa|sy`) destroys the subword tokenisation and
@@ -107,7 +111,7 @@ respect three rules:
 Defaults that fit Qwen3-Embedding's 32k context but match typical
 RAG pipelines: `chunk_size_tokens=512`, `chunk_overlap_tokens=64`.
 
-**Concrete recipe** (planned for v3, lives in `scripts/lib/chunker.py`):
+**Concrete recipe** (shipped, lives in `scripts/lib/chunker.py`):
 
 ```python
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -134,7 +138,7 @@ punctuation, then to whitespace, then to characters (last resort,
 inside a single token-dense word). In practice we never reach the
 last fallback on natural prose.
 
-**Critical:** whatever chunker you ship in production, the v3
+**Critical:** whatever chunker you ship in production, the `_chunks_`
 background must use the **same chunker on the corpus**. Different
 splitters → different Σ → wrong whitening. See §1.
 
@@ -155,8 +159,8 @@ intended them.  A query like "Maria Skłodowska życiorys" then hits
 the chunk that starts with "Życiorys\n\n[biography text...]" and
 also contains the answer.
 
-Verified on the v2 corpus: pre-merge 130 900 chunks with 756 (0.6 %)
-under 30 chars; post-merge 129 181 chunks, **all ≥ 100 chars**.
+Verified on the `pl_mixed50k` corpus: pre-merge 130 900 chunks with
+756 (0.6 %) under 30 chars; post-merge 129 181 chunks, **all ≥ 100 chars**.
 
 ## 7. Resume is by chunk file, not by row count
 

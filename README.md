@@ -11,29 +11,36 @@ ZCA SVD — clone, load, apply.
 
 License: [CC-BY-4.0](LICENSE)
 
-> **Status (2026-06-09):** 5 of 11 backgrounds shipped (all Qwen3-4B
-> MRL refits). Qwen3-8B is mid-embed; its 6 MRL refits will land in
-> the same release. The corpus is `pl_mixed50k` — 22 500 Wikipedia +
+> **Status (2026-06-10):** **22 of 22 backgrounds shipped** — every
+> Qwen3-4B and Qwen3-8B MRL refit, in both `doc` and `chunks`
+> granularity. The corpus is `pl_mixed50k` — 22 500 Wikipedia +
 > 27 500 FineWeb-2 PL + 42 oasst threads = **50 042 docs**, full
 > paragraphs ≥500 chars, token-precise truncation under Qwen3's
-> 32k context.
+> 32k context. The `chunks` variant splits the same docs into
+> **129 181 chunks** of 512 tokens with 64-token overlap
+> (`lib.chunker`, RecursiveCharacterTextSplitter + `merge_tiny` 100-char
+> floor + `strip_overlap_fragments`).
 >
-> | Model | Dim → name |
-> |---|---|
-> | Qwen3-Embedding-4B ✅ | `qwen3_4b_pl_mixed50k_doc_mrl{2560, 1536, 1024, 768, 512}` |
-> | Qwen3-Embedding-8B ⏳ | `qwen3_8b_pl_mixed50k_doc_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+> | Model | Granularity | Dim → name |
+> |---|---|---|
+> | Qwen3-Embedding-4B | doc | `qwen3_4b_pl_mixed50k_doc_mrl{2560, 1536, 1024, 768, 512}` |
+> | Qwen3-Embedding-4B | chunks | `qwen3_4b_pl_mixed50k_chunks_mrl{2560, 1536, 1024, 768, 512}` |
+> | Qwen3-Embedding-8B | doc | `qwen3_8b_pl_mixed50k_doc_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+> | Qwen3-Embedding-8B | chunks | `qwen3_8b_pl_mixed50k_chunks_mrl{4096, 3072, 2048, 1024, 768, 512}` |
 >
 > Earlier `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`, `corpus205_n3155`
 > and `polish_smoke_1500` were retired (different corpus, no
 > granularity tag in the name) — use git history if you need them.
-> Watch [`REGISTRY.md`](REGISTRY.md) for the live count.
+> See [`REGISTRY.md`](REGISTRY.md) for the full per-background table
+> (sizes, costs, anisotropy diagnostics).
 
-> ⚠️ **Granularity matters.** The backgrounds here are fitted on
-> **whole documents** (one embedding per FineWeb-2 / wiki / oasst
-> doc). If your retrieval index stores paragraphs or chunks instead,
-> fit your own background on a paragraph corpus — same pipeline.
-> See [GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity)
-> for why mixing granularities silently degrades the whitening.
+> ⚠️ **Granularity matters.** Pick the variant that matches your
+> retrieval index: `_doc_` backgrounds are fitted on one embedding per
+> whole document (FineWeb-2 / wiki / oasst), `_chunks_` backgrounds on
+> one embedding per 512-token chunk (64-token overlap). Whitening
+> paragraphs with a doc-level background (or vice versa) silently
+> degrades recall — see
+> [GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity).
 
 ## Why whitening?
 
@@ -76,11 +83,11 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
-# After the rebuild this returns 11 names:
-# ['qwen3_4b_pl_mixed50k_doc_mrl2560',
-#  'qwen3_4b_pl_mixed50k_doc_mrl1536',  '..._mrl1024', '..._mrl768', '..._mrl512',
-#  'qwen3_8b_pl_mixed50k_doc_mrl4096',
-#  'qwen3_8b_pl_mixed50k_doc_mrl3072',  '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512']
+# Returns 22 names — 5 (4B doc) + 5 (4B chunks) + 6 (8B doc) + 6 (8B chunks):
+# ['qwen3_4b_pl_mixed50k_doc_mrl2560',    '..._doc_mrl1536',    '..._doc_mrl1024',    '..._doc_mrl768',    '..._doc_mrl512',
+#  'qwen3_4b_pl_mixed50k_chunks_mrl2560', '..._chunks_mrl1536', '..._chunks_mrl1024', '..._chunks_mrl768', '..._chunks_mrl512',
+#  'qwen3_8b_pl_mixed50k_doc_mrl4096',    '..._doc_mrl3072',    '..._doc_mrl2048',    '..._doc_mrl1024',    '..._doc_mrl768', '..._doc_mrl512',
+#  'qwen3_8b_pl_mixed50k_chunks_mrl4096', '..._chunks_mrl3072', '..._chunks_mrl2048', '..._chunks_mrl1024', '..._chunks_mrl768', '..._chunks_mrl512']
 
 # Pair the background with the model + slice dimension you actually use.
 bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
@@ -95,8 +102,7 @@ x_white = bg.apply(x)         # equivalent to (x - bg.mu) @ bg.W
 ```
 
 The only runtime dependency is `numpy`. No `git lfs`, no external
-downloads — once the rebuild lands, every artefact will be committed
-directly to the repo.
+downloads — every artefact is committed directly to the repo.
 
 ## End-to-end: use in a retrieval pipeline
 
@@ -179,20 +185,23 @@ below.
 
 ## Provenance
 
-The v2 corpus is a balanced Polish text mix (sentence-only KLEJ
-replaced with more paragraph content, noisier mC4 swapped for the
+The `pl_mixed50k` corpus is a balanced Polish text mix (sentence-only
+KLEJ replaced with more paragraph content, noisier mC4 swapped for the
 pre-cleaned FineWeb-2):
 
 | Source | Docs | Notes |
 |---|---:|---|
 | Wikipedia PL | 22 500 | [`wikimedia/wikipedia`](https://huggingface.co/datasets/wikimedia/wikipedia) config `20231101.pl` |
-| FineWeb-2 PL | 22 500 | [`HuggingFaceFW/fineweb-2`](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) config `pol_Latn` — Polish web crawl extracted with trafilatura + language/quality filtered + minhash-deduped at source |
-| OASST PL | ~42 | [`OpenAssistant/oasst1`](https://huggingface.co/datasets/OpenAssistant/oasst1) filtered `lang == 'pl'` (target 5 000; ~42 docs clear the 500-char floor in the public dump) |
+| FineWeb-2 PL | 27 500 | [`HuggingFaceFW/fineweb-2`](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) config `pol_Latn` — Polish web crawl extracted with trafilatura + language/quality filtered + minhash-deduped at source |
+| OASST PL | 42 | [`OpenAssistant/oasst1`](https://huggingface.co/datasets/OpenAssistant/oasst1) filtered `lang == 'pl'` (target 5 000; only 42 docs clear the 500-char floor in the public dump) |
 
-Actual v2 corpus on the current rebuild: **45 042 docs, 112.8 MB of
-text, fingerprint `8e4549ffdbb7a406…`**.  All sources enforce a
-500-char minimum per doc (paragraph, not sentence).  Seed = 42,
-streaming shuffle, deterministic.
+Actual corpus: **50 042 docs, ~46 M tokens, fingerprint
+`6e9e965ffbb6dbe6…`**.  All sources enforce a 500-char minimum per
+doc (paragraph, not sentence).  Seed = 42, streaming shuffle,
+deterministic.  For the `chunks` variant the same docs are passed
+through `lib.chunker` (RecursiveCharacterTextSplitter, 512 tokens with
+64-token overlap, `merge_tiny` floor=100 chars,
+`strip_overlap_fragments`) yielding **129 181 chunks**.
 
 Earlier builds (now in git history) also included **KLEJ** (NKJP-NER +
 DYK + CDSC-R) and used **mC4** instead of FineWeb-2.  KLEJ was
@@ -203,14 +212,15 @@ breadcrumb / timestamp boilerplate from a naive HTML→text extraction
 that we can't fix downstream (the HTML is gone).  FineWeb-2 ships text
 already extracted with [trafilatura](https://trafilatura.readthedocs.io).
 
-Each background's `*.meta.json` (once the rebuild lands) records the
-exact `sample_size_actual`, `corpus_fingerprint_sha256`, seed, and
+Each background's `*.meta.json` records the exact
+`sample_size_actual`, `corpus_fingerprint_sha256`, seed, OpenRouter
+cost report (prompt tokens, USD spend, n_calls, n_429), and
 diagnostic eigenvalues.
 
 ## Repo layout
 
 ```
-backgrounds/<name>/                   # populated after the rebuild
+backgrounds/<name>/                   # one dir per shipped background (22 total)
   W_A.npy           # (dim, dim) float32  — apply: (x - mu) @ W
   mu_A.npy          # (dim,)    float32
   eigvals_A.npy     # (dim,)    float32   — diagnostic, not needed at apply time
@@ -218,6 +228,7 @@ backgrounds/<name>/                   # populated after the rebuild
 REGISTRY.md         # human-readable index, autogenerated
 registry.json       # same, machine-readable
 loader.py           # numpy-only loader (see Quick start)
+lib/chunker.py      # RecursiveCharacterTextSplitter used by build_corpus_chunks.py
 scripts/            # corpus + embed + fit + index pipeline
 LICENSE             # CC-BY-4.0
 README.md           # this file
@@ -226,33 +237,41 @@ README.pl.md        # Polish version
 
 ## How they were built
 
-Sample the corpus mix above (seed=42), embed each doc via OpenRouter
-against `Qwen/Qwen3-Embedding-4B` and `Qwen/Qwen3-Embedding-8B`, fit
-ZCA via two streaming passes over the embedding chunks (`μ = E[x]`,
-`Σ = E[(x-μ)(x-μ)ᵀ]`), then `W = U · diag(1/√(S + ε)) · Uᵀ` from
-`SVD(Σ)` with `ε=1e-6`. No GPU needed; the rebuild costs ~$1 in
-OpenRouter spend total for both models.
+Sample the corpus mix above (seed=42), embed each doc (or chunk) via
+OpenRouter against `Qwen/Qwen3-Embedding-4B` and
+`Qwen/Qwen3-Embedding-8B`, fit ZCA via two streaming passes over the
+embedding chunks (`μ = E[x]`, `Σ = E[(x-μ)(x-μ)ᵀ]`), then
+`W = U · diag(1/√(S + ε)) · Uᵀ` from `SVD(Σ)` with `ε=1e-6`. No GPU
+needed; the full rebuild (4B doc + 8B doc + 4B chunks + 8B chunks =
+22 backgrounds) cost **~$2.77** in OpenRouter spend
+(4B doc $0.92 / 8B doc $0.46 / 4B chunks $0.95 / 8B chunks $0.48).
 
 Per-doc context is enforced precisely at embed time: each doc is run
 through the model's own tokenizer (pulled from HF — same
 `tokenizer.json` for 4B and 8B, sha256 `83cdf8c3a34f6886…`) and
 truncated to **30 000 tokens** if needed (~2k margin under Qwen3's
-32k context window). On the v2 corpus only **19 of 45 042 docs** hit
-the cap; the rest pass through untouched.
+32k context window). On the 50 042-doc corpus only a handful of docs
+hit the cap; the rest pass through untouched. Chunks are produced
+upstream of embedding by `lib.chunker` (512 tokens, 64-token overlap)
+and never exceed context.
 
-The same embedding chunks are then fit five times (4B) and six times
-(8B) — once at each MRL dim — by slicing each chunk to `N` columns,
-L2-renormalising row-wise, and re-fitting ZCA. The whole MRL grid for
-one model takes well under a minute on CPU once the embed pass is
+The same embedding chunks are then fit five times (4B) or six times
+(8B) per granularity — once at each MRL dim — by slicing each
+embedding to `N` columns, L2-renormalising row-wise, **refitting μ
+and Σ from scratch**, and re-running the SVD. (Slicing the full-dim
+`W` directly would be wrong.) The whole MRL grid for one model+
+granularity takes under two minutes on CPU once the embed pass is
 done.
 
 ## Rebuild from scratch (or fit your own model)
 
 The `scripts/` directory contains a complete pipeline you can run with
 any OpenRouter API key, on any embedding model OpenRouter supports.
-Expected wall time is ~1–3 hours per model and ~$0.5–1 in API spend
-per model for the 45k-doc Polish mix (~41 M tokens at $0.01–0.02 / M
-depending on which provider OpenRouter routes to).
+Expected wall time is ~1–3 hours per model+granularity and **$0.46–0.95
+in API spend per model+granularity** for the 50k-doc Polish mix
+(~46 M tokens doc / ~47.5 M tokens chunks at $0.01–0.02 / M depending
+on which provider OpenRouter routes to — `--ignore-providers siliconflow`
+is set by default because that route is ~4× more expensive).
 
 ```bash
 git clone https://github.com/romek-rozen/polish-whitening-backgrounds.git
@@ -265,7 +284,8 @@ pip install -r requirements.txt
 cp .env.example .env
 $EDITOR .env             # paste OPENROUTER_API_KEY=sk-or-...
 
-# 3. End-to-end: corpus → embed (both 4B + 8B) → fit (11 MRL dims) → index.
+# 3. End-to-end: corpus → embed (both 4B + 8B, doc + chunks)
+#    → fit (22 MRL refits) → index.
 bash scripts/run_full.sh
 ```
 
@@ -274,6 +294,7 @@ What each script does:
 | Script | Purpose |
 |---|---|
 | `scripts/build_corpus.py` | Sample the Polish mix (wiki + FineWeb-2 PL + oasst) with seed=42 and a 500-char paragraph floor. Writes `data/corpus.parquet`. Default: no upper cap. |
+| `scripts/build_corpus_chunks.py` | Same corpus → run `lib.chunker` (512 tokens, 64-token overlap, merge_tiny floor=100 chars, strip_overlap_fragments) → writes `data/corpus_chunks.parquet` (129 181 rows). |
 | `scripts/embed_via_openrouter.py` | Embed `corpus.parquet` via OpenRouter. Pre-flight token-precise truncation under the model's context window (default 30 000 tokens via the Qwen3 tokenizer pulled from HF — overridable with `--max-tokens-per-doc` and `--tokenizer-repo`). Adaptive batch (starts at 16, halves on 429/5xx, grows back after success streaks). Idempotent: resumes from the highest existing chunk. Writes `data/chunks_<slug>/*.npy` and a per-call `cost_report_<slug>.json`. |
 | `scripts/fit_zca.py` | Two streaming passes (μ, Σ) over chunks + SVD. Optional `--truncate-to N` slices each chunk to `N` columns and re-renormalises before fitting, for MRL refits. Writes `backgrounds/<name>/{W_A.npy, mu_A.npy, eigvals_A.npy, *.meta.json}`. |
 | `scripts/index_backgrounds.py` | Regenerate `REGISTRY.md` + `registry.json`. Called by `run_full.sh`. |

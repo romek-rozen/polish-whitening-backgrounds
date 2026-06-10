@@ -44,26 +44,36 @@ threads but the public oasst-1 dump yields only 42 Polish-tagged
 ones, so the FineWeb tier was extended by 5 000 to get back to a
 genuine 50k.
 
-Two granularities are planned:
+Both granularities are shipped:
 
-- `_doc_` — one embedding per whole document. **Shipped now.**
-- `_chunks_` — one embedding per overlapping 512-token chunk
-  produced by `scripts/lib/chunker.py`. **Coming next** (the
-  parquet is already on disk; embed + fit pending). Not a
-  drop-in replacement for `_doc_` — see
+- `_doc_` — one embedding per whole document (50 042 vectors).
+- `_chunks_` — one embedding per 512-token chunk with 64-token
+  overlap, produced by `scripts/lib/chunker.py`
+  (`RecursiveCharacterTextSplitter` with `merge_tiny` floor=100 chars
+  + `strip_overlap_fragments`). Yields **129 181 chunks** from the
+  same 50 042 docs. Not a drop-in replacement for `_doc_` — the
+  background's fit-time granularity MUST match your index-time
+  granularity; see
   [`../GOTCHAS.md`](../GOTCHAS.md#1-background-granularity-must-match-index-granularity).
 
 ## Picking the right one for your pipeline
 
+All 22 variants are shipped. Pick `_doc_` if you whiten whole
+documents, `_chunks_` if you whiten 512-token chunks.
+
 | Your model | Your effective dim (after MRL slice + L2 renorm) | Use |
 |---|---:|---|
-| Qwen3-Embedding-4B | 2560 (native) | `…_qwen3_4b_mrl2560/` |
-| Qwen3-Embedding-4B | 1536 | `…_qwen3_4b_mrl1536/` |
-| Qwen3-Embedding-4B | 1024 | `…_qwen3_4b_mrl1024/` |
-| Qwen3-Embedding-4B | 768 | `…_qwen3_4b_mrl768/` |
-| Qwen3-Embedding-4B | 512 | `…_qwen3_4b_mrl512/` |
-| Qwen3-Embedding-8B | 4096 (native) | `…_qwen3_8b_mrl4096/` *(coming)* |
-| Qwen3-Embedding-8B | 3072 / 2048 / 1024 / 768 / 512 | `…_qwen3_8b_mrl<dim>/` *(coming)* |
+| Qwen3-Embedding-4B | 2560 (native) | `qwen3_4b_pl_mixed50k_{doc,chunks}_mrl2560/` |
+| Qwen3-Embedding-4B | 1536 | `qwen3_4b_pl_mixed50k_{doc,chunks}_mrl1536/` |
+| Qwen3-Embedding-4B | 1024 | `qwen3_4b_pl_mixed50k_{doc,chunks}_mrl1024/` |
+| Qwen3-Embedding-4B | 768 | `qwen3_4b_pl_mixed50k_{doc,chunks}_mrl768/` |
+| Qwen3-Embedding-4B | 512 | `qwen3_4b_pl_mixed50k_{doc,chunks}_mrl512/` |
+| Qwen3-Embedding-8B | 4096 (native) | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl4096/` |
+| Qwen3-Embedding-8B | 3072 | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl3072/` |
+| Qwen3-Embedding-8B | 2048 | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl2048/` |
+| Qwen3-Embedding-8B | 1024 | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl1024/` |
+| Qwen3-Embedding-8B | 768 | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl768/` |
+| Qwen3-Embedding-8B | 512 | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl512/` |
 
 If you slice to a dim we don't ship (e.g. 256, or 2048 against 4B),
 refit yourself — see [Rebuild from scratch](../README.md#rebuild-from-scratch-or-fit-your-own-model)
@@ -79,9 +89,11 @@ thresholds:
 - `rank_deficient_eigvals` (count of eigvals < 1e-7) should be
   **well under ~100**. Anything higher means SVD found an
   unhealthy low-rank structure — usually a corpus problem.
+  Shipped backgrounds top out at 24 (4096-dim 8B chunks).
 - `top_ev_ratio_pre` is the anisotropy ratio (top eigval ÷ mean).
-  Values in the **tens** are normal for modern embeddings (Qwen3
-  v2 backgrounds run 24–92 across the MRL ladder). A ratio near 1
+  Values in the **tens to low hundreds** are normal for modern
+  embeddings — shipped Qwen3 backgrounds run 20.4 (8B chunks @512)
+  to 157.6 (8B doc @4096) across the MRL ladder. A ratio near 1
   would mean the model was already isotropic and whitening
   wouldn't do anything.
 - `fit_s` is just the wall-clock for SVD — sanity-check it scaled

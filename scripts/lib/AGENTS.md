@@ -15,12 +15,12 @@ these modules together — never re-implement the same logic inline.
 | `openrouter_client.py` | Single embeddings POST, transient-status classification, 200-but-no-data unwrap, provider routing payload. |
 | `chunk_store.py` | `chunk_NNNN.npy` persistence, resume detection, cost-report I/O, skip-log append. |
 | `zca.py` | Streaming μ / Σ + SVD with optional MRL truncation, meta-json writer. |
-| `chunker.py` | Sentence-aware recursive splitter for v3 paragraph-level pipeline.  Sized in Qwen3 tokens via the same tokenizer.json `tokenizer.py` pulls. |
+| `chunker.py` | Sentence-aware recursive splitter for the chunks pipeline (512-token chunks, 64-token overlap, merge_tiny floor=100 chars, strip_overlap_fragments).  Sized in Qwen3 tokens via the same tokenizer.json `tokenizer.py` pulls. |
 
 The top-level scripts (`embed_via_openrouter.py`, `fit_zca.py`) are
-still inlined at the time of writing.  The rewrite to thin wrappers
-is planned for after the live v2 embed + fit run completes — see
-the AGENTS.md at the repo root for the schedule.
+still partly inlined.  The rewrite to thin wrappers is a follow-up;
+all 22 backgrounds (4b/8b × doc/chunks × 5–6 MRL dims) have already
+been shipped against the current module layout.
 
 ## Rules of the road
 

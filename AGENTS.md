@@ -24,23 +24,21 @@ this repo's `data/` (git-ignored). Never read or write to
 or any of its `data/` / `results/` / `models/` subtrees — that's the
 user's main project, not this one.
 
-## Current state (2026-06-09)
+## Current state (2026-06-10)
 
-**Shipped on GitHub `main`** (11 target backgrounds, 5/11 done):
+**Shipped on GitHub `main`** (22/22 backgrounds, COMPLETE):
 
-| Background dir | Dim | Status |
+| Background dirs | Dim range | Status |
 |---|---:|---|
-| `qwen3_4b_pl_mixed50k_doc_mrl2560/` | 2560 | ✅ |
-| `qwen3_4b_pl_mixed50k_doc_mrl1536/` | 1536 | ✅ |
-| `qwen3_4b_pl_mixed50k_doc_mrl1024/` | 1024 | ✅ |
-| `qwen3_4b_pl_mixed50k_doc_mrl768/` | 768 | ✅ |
-| `qwen3_4b_pl_mixed50k_doc_mrl512/` | 512 | ✅ |
-| `qwen3_8b_pl_mixed50k_doc_mrl{4096,3072,2048,1024,768,512}/` | 4096…512 | ⏳ |
+| `qwen3_4b_pl_mixed50k_doc_mrl{2560,1536,1024,768,512}/` | 2560…512 | shipped |
+| `qwen3_4b_pl_mixed50k_chunks_mrl{2560,1536,1024,768,512}/` | 2560…512 | shipped |
+| `qwen3_8b_pl_mixed50k_doc_mrl{4096,3072,2048,1024,768,512}/` | 4096…512 | shipped |
+| `qwen3_8b_pl_mixed50k_chunks_mrl{4096,3072,2048,1024,768,512}/` | 4096…512 | shipped |
 
-8B embed is mid-run in tmux session `w8b` against the new 50k corpus;
-fits land automatically when its embed completes (~3h ETA from start
-at 13:48).  The orchestrator is `scripts/run_full.sh` with
-`MODELS=qwen/qwen3-embedding-8b` set in the launching tmux env.
+Total embedding cost across all four runs: ~$2.77 (4b doc $0.92,
+8b doc $0.46, 4b chunks $0.95, 8b chunks $0.48).  The orchestrator is
+`scripts/run_full.sh`; chunk runs were launched with
+`NAME_PREFIX=pl_mixed50k_chunks` and `CORPUS=data/corpus_chunks_512_64.parquet`.
 
 **Retired** (still in git history, removed from `main` working tree):
 - `polish_mixed_50k_v1{,_mrl1024,_mrl1536}/`
@@ -58,11 +56,13 @@ Replaced because: (a) the v1 mix used noisier mC4 + sentence-only KLEJ;
 - `data/corpus_45k_backup.parquet` — pre-fineweb_more snapshot from
   before the corpus enlargement.  Safe to delete once we're confident
   in the 50k run.
-- `data/corpus_chunks_512_64.parquet` — 129 181 chunks from the v3
+- `data/corpus_chunks_512_64.parquet` — 129 181 chunks from the
   splitter (`lib.chunker`, post merge_tiny + strip_overlap_fragments).
-  Used for the planned v3 chunk-level fits.
-- `data/chunks_qwen_qwen3-embedding-{4b,8b}/` — embedding output of
-  the embed step.  Resumable; ~700 MB each at completion.
+  Used for the shipped chunk-level fits.
+- `data/chunks_qwen_qwen3-embedding-{4b,8b}/` — doc-level embedding
+  output of the embed step.  Resumable; ~700 MB each at completion.
+- `data/chunks_qwen_qwen3-embedding-{4b,8b}_chunks/` — chunk-level
+  embedding output (129 181 rows each).
 
 ## Naming convention
 
@@ -78,17 +78,20 @@ Replaced because: (a) the v1 mix used noisier mC4 + sentence-only KLEJ;
 Model first means `ls backgrounds | grep qwen3_4b` lists every
 variant of that model in one shot.
 
-- `_doc_` — one embedding per whole document.  Used for the v2
-  shipped fits.
-- `_chunks_` — one embedding per overlapping ~512-token chunk
-  (target overlap 64 tokens).  Planned v3 fits — corpus parquet
-  already on disk, embed + fit pending after 8B doc-level finishes.
+- `_doc_` — one embedding per whole document.
+- `_chunks_` — one embedding per ~512-token chunk with 64-token
+  overlap, produced by `scripts/lib/chunker.py`.
+
+Granularity contract: a background's fit-time granularity MUST match
+its inference-time granularity.  Don't whiten paragraphs with a
+doc-level background or full documents with a chunks-level background
+— see [`GOTCHAS.md`](GOTCHAS.md) §1.
 
 `run_full.sh` builds names as
 `${MODEL_SHORT}_${NAME_PREFIX}_mrl${DIM}` where `MODEL_SHORT` is the
 last segment of the OpenRouter id with `-` → `_` (so
 `qwen/qwen3-embedding-4b` → `qwen3_4b`).  Default `NAME_PREFIX` is
-`pl_mixed50k_doc`; for v3 chunk fits set
+`pl_mixed50k_doc`; for chunk fits set
 `NAME_PREFIX=pl_mixed50k_chunks` before launching.
 
 ## Pipeline shape
@@ -100,7 +103,7 @@ last segment of the OpenRouter id with `-` → `_` (so
 3. `fit_zca.py` per (model, MRL dim) → `backgrounds/<name>/{W_A,mu_A,eigvals_A}.npy + <name>.meta.json`
 4. `index_backgrounds.py` → `REGISTRY.md` + `registry.json`
 
-For v3 chunks, an extra phase 1.5 runs first:
+For chunk-level fits an extra phase 1.5 runs first:
 `build_corpus_chunks.py --chunk-size 512 --chunk-overlap 64`
 producing `data/corpus_chunks_512_64.parquet` which the embed step
 then consumes via `--corpus` instead of `corpus.parquet`.
@@ -138,7 +141,7 @@ In `scripts/run_full.sh`:
 - `DIMS_8B="4096 3072 2048 1024 768 512"`  (6 fits, includes native 4096;
   2560 / 1536 dropped — 8B wasn't MRL-trained at those off-grid dims)
 
-In `scripts/lib/chunker.py` (v3):
+In `scripts/lib/chunker.py`:
 - `chunk_size=512` Qwen3 tokens, `chunk_overlap=64`.
 - `merge_tiny(chunks, min_chars=100)` forward-merges sub-100-char
   chunks into their next neighbour — fixes LangChain's "tiny

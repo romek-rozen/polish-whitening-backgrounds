@@ -63,6 +63,11 @@ python scripts/fit_zca.py \
 python scripts/index_backgrounds.py # regenerate REGISTRY.md
 ```
 
+The `--chunks` dir must match the granularity baked into `<new-name>`
+(doc vs chunks).  Whitening doc-level embeddings with a
+chunk-level background (or vice versa) is the §1 gotcha — fit and
+inference granularity must match.
+
 …then commit `backgrounds/<new-name>/` + the regenerated
 `REGISTRY.md` + `registry.json` as one atomic change.
 
@@ -82,8 +87,9 @@ history, leave it alone.
 
 Before pushing, eyeball `meta.json.diagnostics`:
 
-- `rank_deficient_eigvals` should be **under ~100** for a 2560-dim
-  background; lower for smaller dims.  The v2 4B fits run 2–17.
+- `rank_deficient_eigvals` should be **under ~100** for a top-dim
+  background (2560 for 4B, 4096 for 8B); lower for smaller MRL
+  slices.  The shipped 4B fits run 2–17, the 8B fits run 0–24.
   Higher counts mean the corpus didn't span the embedding space —
   usually a sign you sliced an MRL dim the model wasn't trained
   at, or the corpus is too small / repetitive.
@@ -109,7 +115,6 @@ Delete the subdir and refit on a fixed corpus or with a different
   pre-built.
 - Backgrounds at MRL dims the model wasn't trained at (e.g. 2048
   for 4B, 1536 for 8B).  The MRL ladder we ship matches each
-  model's published targets; off-grid dims work but recall is
-  worse.
-- The paragraph-level v3 backgrounds.  See [`README.md`](README.md)
-  for the timing.
+  model's published targets (4B: 512/768/1024/1536/2560;
+  8B: 512/768/1024/2048/3072/4096); off-grid dims work but recall
+  is worse.

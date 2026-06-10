@@ -18,12 +18,12 @@ Read order for a fresh agent:
 ```
 build_corpus.py  →  data/corpus.parquet
                          │
-                         ├─ v2 (doc-level, currently shipped)
+                         ├─ v2 (doc-level, shipped)
                          │       │
                          │       ▼
                          │     embed_via_openrouter.py
                          │
-                         └─ v3 (paragraph-level, planned)
+                         └─ v3 (chunk-level, shipped)
                                  │
                                  ▼
                             build_corpus_chunks.py
@@ -126,7 +126,7 @@ flakes, and refactors: you can stop it anywhere and re-launch
 ## Common operations
 
 ```bash
-# Full rebuild from scratch (corpus → embed × 2 models → fit × 11 MRL → index).
+# Full rebuild from scratch (corpus → embed × 2 models × {doc, chunks} → fit × 22 MRL → index).
 PY=/path/to/venv/bin/python bash scripts/run_full.sh
 
 # Single model.
@@ -134,6 +134,9 @@ MODELS="qwen/qwen3-embedding-4b" bash scripts/run_full.sh
 
 # Just one MRL dim for 4B (e.g. you only care about 1024).
 DIMS_4B="1024" MODELS="qwen/qwen3-embedding-4b" bash scripts/run_full.sh
+
+# Provider routing: skip siliconflow (~4× more expensive than the cheapest).
+PROVIDER_ORDER="--ignore-providers siliconflow" bash scripts/run_full.sh
 
 # Re-index after manually placing artefacts in backgrounds/.
 python scripts/index_backgrounds.py
