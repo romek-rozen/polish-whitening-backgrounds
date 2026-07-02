@@ -12,8 +12,19 @@
 # Optional env:
 #   MODELS               — space-separated OpenRouter model ids
 #                          (default: both Qwen3 embedders)
-#   NAME_PREFIX          — backgrounds/<NAME_PREFIX>_<model_short>_nocap
-#                          (default: polish_mixed_50k_v1)
+#   NAME_PREFIX          — middle tag of the background name:
+#                          <model>_<NAME_PREFIX>_mrl<dim>
+#                          (default: pl_mixed50k_doc)
+#   CORPUS               — parquet the embed step consumes (default:
+#                          data/corpus.parquet).  For chunk/segment fits
+#                          point at the derived parquet, e.g.
+#                          data/corpus_segments_1024.parquet, and build
+#                          it first (build_corpus_chunks.py /
+#                          build_corpus_segments.py).
+#   OUT_ROOT             — where embed outputs land (default: data).
+#                          Use a per-corpus dir (e.g. data/segments_corpus)
+#                          for non-doc runs so resume state and cost
+#                          reports don't collide with the doc run.
 #   MAX_CHARS            — pass --max-chars N to build_corpus.py
 #                          (default: unset = no cap)
 #   START_BATCH          — initial batch size to OpenRouter (default: 16)
@@ -46,6 +57,19 @@ fi
 MODELS_DEFAULT="qwen/qwen3-embedding-4b qwen/qwen3-embedding-8b"
 MODELS="${MODELS:-$MODELS_DEFAULT}"
 NAME_PREFIX="${NAME_PREFIX:-pl_mixed50k_doc}"
+CORPUS="${CORPUS:-data/corpus.parquet}"
+OUT_ROOT="${OUT_ROOT:-data}"
+
+# Hard guard: a derived corpus (chunks / segments) with the default
+# OUT_ROOT would land in data/chunks_<slug>/ — the SAME dir as the
+# shipped doc-level run.  detect_resume_state would then "resume" from
+# the doc embeddings and append derived-corpus rows after them,
+# silently poisoning Σ with a doc+derived mixture.
+if [ "$CORPUS" != "data/corpus.parquet" ] && [ "$OUT_ROOT" = "data" ]; then
+    echo "ERROR: CORPUS=$CORPUS needs its own OUT_ROOT (e.g." \
+         "data/segments_corpus) — OUT_ROOT=data belongs to the doc run." >&2
+    exit 2
+fi
 START_BATCH="${START_BATCH:-16}"
 MAX_BATCH="${MAX_BATCH:-32}"
 #   PROVIDER_ORDER — leave empty by default so OpenRouter picks
@@ -64,8 +88,18 @@ if [ -n "${MAX_CHARS:-}" ]; then
     CORPUS_ARGS+=(--max-chars "$MAX_CHARS")
 fi
 
-echo "==> Phase 1: build corpus"
-$PY scripts/build_corpus.py "${CORPUS_ARGS[@]+"${CORPUS_ARGS[@]}"}"
+if [ "$CORPUS" = "data/corpus.parquet" ]; then
+    echo "==> Phase 1: build corpus"
+    $PY scripts/build_corpus.py "${CORPUS_ARGS[@]+"${CORPUS_ARGS[@]}"}"
+else
+    # Derived corpora (chunks / segments) are built by their own
+    # build_corpus_*.py step before launching this script.
+    if [ ! -f "$CORPUS" ]; then
+        echo "ERROR: CORPUS=$CORPUS not found — build it first." >&2
+        exit 2
+    fi
+    echo "==> Phase 1: using prebuilt corpus $CORPUS"
+fi
 
 short() {
     # qwen/qwen3-embedding-8b → qwen3-8b
@@ -84,9 +118,11 @@ dims_for() {
 for MODEL in $MODELS; do
     SHORT="$(short "$MODEL")"
     SLUG="$(echo "$MODEL" | tr '/' '_' | tr ':' '_')"
-    echo "==> Phase 2: embed $MODEL  →  data/chunks_${SLUG}/"
+    echo "==> Phase 2: embed $MODEL  →  ${OUT_ROOT}/chunks_${SLUG}/"
     $PY scripts/embed_via_openrouter.py \
         --model "$MODEL" \
+        --corpus "$CORPUS" \
+        --out "$OUT_ROOT" \
         --start-batch "$START_BATCH" \
         --max-batch "$MAX_BATCH" \
         --provider-order "$PROVIDER_ORDER"
@@ -104,9 +140,10 @@ for MODEL in $MODELS; do
         NAME="${MODEL_SHORT}_${NAME_PREFIX}_mrl${DIM}"
         echo "==> Phase 3: fit ZCA $MODEL  dim=${DIM}  →  backgrounds/${NAME}/"
         $PY scripts/fit_zca.py \
-            --chunks "data/chunks_${SLUG}" \
+            --chunks "${OUT_ROOT}/chunks_${SLUG}" \
             --name "$NAME" \
             --model "$MODEL" \
+            --cost-report "${OUT_ROOT}/cost_report_${SLUG}.json" \
             --truncate-to "$DIM"
     done
 done

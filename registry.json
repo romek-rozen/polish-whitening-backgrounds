@@ -321,6 +321,166 @@
       "size_bytes": 2365824
     },
     {
+      "name": "qwen3_4b_pl_mixed50k_kw_mrl1024",
+      "dim": 1024,
+      "embedding_model": "qwen/qwen3-embedding-4b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:16.514537+00:00",
+      "n_fit": 50000,
+      "rank_full": 1022,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 34.366363525390625,
+      "eigvals_max": 0.01485329121351242,
+      "eigvals_min": 8.538229567811584e-10,
+      "fit_s": 0.646,
+      "embedding_cost_usd": 0.008614119999999996,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_4b_pl_mixed50k_kw_mrl1024",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
+    },
+    {
+      "name": "qwen3_4b_pl_mixed50k_kw_mrl1536",
+      "dim": 1536,
+      "embedding_model": "qwen/qwen3-embedding-4b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:15.627716+00:00",
+      "n_fit": 50000,
+      "rank_full": 1531,
+      "rank_deficient": 5,
+      "top_ev_ratio_pre": 49.44230270385742,
+      "eigvals_max": 0.014512993395328522,
+      "eigvals_min": 4.442749501620824e-10,
+      "fit_s": 1.276,
+      "embedding_cost_usd": 0.008614119999999996,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_4b_pl_mixed50k_kw_mrl1536",
+      "W_shape": [
+        1536,
+        1536
+      ],
+      "mu_shape": [
+        1536
+      ],
+      "eigvals_shape": [
+        1536
+      ],
+      "size_bytes": 9449856
+    },
+    {
+      "name": "qwen3_4b_pl_mixed50k_kw_mrl2560",
+      "dim": 2560,
+      "embedding_model": "qwen/qwen3-embedding-4b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:14.164971+00:00",
+      "n_fit": 50000,
+      "rank_full": 2532,
+      "rank_deficient": 28,
+      "top_ev_ratio_pre": 81.45902252197266,
+      "eigvals_max": 0.014994584955275059,
+      "eigvals_min": 1.941245914016676e-10,
+      "fit_s": 5.164,
+      "embedding_cost_usd": 0.008614119999999996,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_4b_pl_mixed50k_kw_mrl2560",
+      "W_shape": [
+        2560,
+        2560
+      ],
+      "mu_shape": [
+        2560
+      ],
+      "eigvals_shape": [
+        2560
+      ],
+      "size_bytes": 26235264
+    },
+    {
+      "name": "qwen3_4b_pl_mixed50k_kw_mrl512",
+      "dim": 512,
+      "embedding_model": "qwen/qwen3-embedding-4b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:17.563435+00:00",
+      "n_fit": 50000,
+      "rank_full": 510,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 20.68885612487793,
+      "eigvals_max": 0.017283251509070396,
+      "eigvals_min": 2.4892694572287155e-09,
+      "fit_s": 0.234,
+      "embedding_cost_usd": 0.008614119999999996,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_4b_pl_mixed50k_kw_mrl512",
+      "W_shape": [
+        512,
+        512
+      ],
+      "mu_shape": [
+        512
+      ],
+      "eigvals_shape": [
+        512
+      ],
+      "size_bytes": 1053056
+    },
+    {
+      "name": "qwen3_4b_pl_mixed50k_kw_mrl768",
+      "dim": 768,
+      "embedding_model": "qwen/qwen3-embedding-4b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:17.099425+00:00",
+      "n_fit": 50000,
+      "rank_full": 766,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 26.990509033203125,
+      "eigvals_max": 0.015507722273468971,
+      "eigvals_min": 1.3575460755532731e-09,
+      "fit_s": 0.401,
+      "embedding_cost_usd": 0.008614119999999996,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_4b_pl_mixed50k_kw_mrl768",
+      "W_shape": [
+        768,
+        768
+      ],
+      "mu_shape": [
+        768
+      ],
+      "eigvals_shape": [
+        768
+      ],
+      "size_bytes": 2365824
+    },
+    {
       "name": "qwen3_8b_pl_mixed50k_chunks_mrl1024",
       "dim": 1024,
       "embedding_model": "qwen/qwen3-embedding-8b",
@@ -692,6 +852,902 @@
       "corpus_fingerprint": "6e9e965ffbb6dbe6897620601aeea5fa2c631d7002d869688012fe15f382849d",
       "build_script": "scripts/fit_zca.py",
       "path": "backgrounds/qwen3_8b_pl_mixed50k_doc_mrl768",
+      "W_shape": [
+        768,
+        768
+      ],
+      "mu_shape": [
+        768
+      ],
+      "eigvals_shape": [
+        768
+      ],
+      "size_bytes": 2365824
+    },
+    {
+      "name": "qwen3_8b_pl_mixed50k_kw_mrl1024",
+      "dim": 1024,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:44.864810+00:00",
+      "n_fit": 50000,
+      "rank_full": 1024,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 38.84823989868164,
+      "eigvals_max": 0.01745612919330597,
+      "eigvals_min": 4.285626346245408e-06,
+      "fit_s": 0.839,
+      "embedding_cost_usd": 0.004307059999999998,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_pl_mixed50k_kw_mrl1024",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
+    },
+    {
+      "name": "qwen3_8b_pl_mixed50k_kw_mrl2048",
+      "dim": 2048,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:43.800328+00:00",
+      "n_fit": 50000,
+      "rank_full": 2047,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 76.38849639892578,
+      "eigvals_max": 0.017453502863645554,
+      "eigvals_min": 4.685004554444427e-13,
+      "fit_s": 3.538,
+      "embedding_cost_usd": 0.004307059999999998,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_pl_mixed50k_kw_mrl2048",
+      "W_shape": [
+        2048,
+        2048
+      ],
+      "mu_shape": [
+        2048
+      ],
+      "eigvals_shape": [
+        2048
+      ],
+      "size_bytes": 16793984
+    },
+    {
+      "name": "qwen3_8b_pl_mixed50k_kw_mrl3072",
+      "dim": 3072,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:40.012148+00:00",
+      "n_fit": 50000,
+      "rank_full": 3067,
+      "rank_deficient": 5,
+      "top_ev_ratio_pre": 112.76949310302734,
+      "eigvals_max": 0.01737106963992119,
+      "eigvals_min": 5.457171376572166e-14,
+      "fit_s": 7.424,
+      "embedding_cost_usd": 0.004307059999999998,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_pl_mixed50k_kw_mrl3072",
+      "W_shape": [
+        3072,
+        3072
+      ],
+      "mu_shape": [
+        3072
+      ],
+      "eigvals_shape": [
+        3072
+      ],
+      "size_bytes": 37773696
+    },
+    {
+      "name": "qwen3_8b_pl_mixed50k_kw_mrl4096",
+      "dim": 4096,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:32.322909+00:00",
+      "n_fit": 50000,
+      "rank_full": 4037,
+      "rank_deficient": 59,
+      "top_ev_ratio_pre": 149.91537475585938,
+      "eigvals_max": 0.01798020675778389,
+      "eigvals_min": 3.385098733439673e-14,
+      "fit_s": 14.345,
+      "embedding_cost_usd": 0.004307059999999998,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_pl_mixed50k_kw_mrl4096",
+      "W_shape": [
+        4096,
+        4096
+      ],
+      "mu_shape": [
+        4096
+      ],
+      "eigvals_shape": [
+        4096
+      ],
+      "size_bytes": 67142016
+    },
+    {
+      "name": "qwen3_8b_pl_mixed50k_kw_mrl512",
+      "dim": 512,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:46.013716+00:00",
+      "n_fit": 50000,
+      "rank_full": 512,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 21.262163162231445,
+      "eigvals_max": 0.018947536125779152,
+      "eigvals_min": 1.3411712643573992e-05,
+      "fit_s": 0.308,
+      "embedding_cost_usd": 0.004307059999999998,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_pl_mixed50k_kw_mrl512",
+      "W_shape": [
+        512,
+        512
+      ],
+      "mu_shape": [
+        512
+      ],
+      "eigvals_shape": [
+        512
+      ],
+      "size_bytes": 1053056
+    },
+    {
+      "name": "qwen3_8b_pl_mixed50k_kw_mrl768",
+      "dim": 768,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:45.530976+00:00",
+      "n_fit": 50000,
+      "rank_full": 768,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 30.893404006958008,
+      "eigvals_max": 0.018585428595542908,
+      "eigvals_min": 6.9064008130226284e-06,
+      "fit_s": 0.475,
+      "embedding_cost_usd": 0.004307059999999998,
+      "embedding_tokens": 430706,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_pl_mixed50k_kw_mrl768",
+      "W_shape": [
+        768,
+        768
+      ],
+      "mu_shape": [
+        768
+      ],
+      "eigvals_shape": [
+        768
+      ],
+      "size_bytes": 2365824
+    },
+    {
+      "name": "te3large_pl_mixed50k_kw_mrl1024",
+      "dim": 1024,
+      "embedding_model": "text-embedding-3-large",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:03.665135+00:00",
+      "n_fit": 50000,
+      "rank_full": 1023,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 31.83819007873535,
+      "eigvals_max": 0.0209252517670393,
+      "eigvals_min": 6.698799293047841e-09,
+      "fit_s": 0.636,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3large_pl_mixed50k_kw_mrl1024",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
+    },
+    {
+      "name": "te3large_pl_mixed50k_kw_mrl1536",
+      "dim": 1536,
+      "embedding_model": "text-embedding-3-large",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:02.787572+00:00",
+      "n_fit": 50000,
+      "rank_full": 1534,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 46.07573699951172,
+      "eigvals_max": 0.020267659798264503,
+      "eigvals_min": 9.97338989172647e-10,
+      "fit_s": 1.286,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3large_pl_mixed50k_kw_mrl1536",
+      "W_shape": [
+        1536,
+        1536
+      ],
+      "mu_shape": [
+        1536
+      ],
+      "eigvals_shape": [
+        1536
+      ],
+      "size_bytes": 9449856
+    },
+    {
+      "name": "te3large_pl_mixed50k_kw_mrl2048",
+      "dim": 2048,
+      "embedding_model": "text-embedding-3-large",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:01.320349+00:00",
+      "n_fit": 50000,
+      "rank_full": 2045,
+      "rank_deficient": 3,
+      "top_ev_ratio_pre": 59.445884704589844,
+      "eigvals_max": 0.01979541964828968,
+      "eigvals_min": 3.173084841753826e-12,
+      "fit_s": 3.187,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3large_pl_mixed50k_kw_mrl2048",
+      "W_shape": [
+        2048,
+        2048
+      ],
+      "mu_shape": [
+        2048
+      ],
+      "eigvals_shape": [
+        2048
+      ],
+      "size_bytes": 16793984
+    },
+    {
+      "name": "te3large_pl_mixed50k_kw_mrl256",
+      "dim": 256,
+      "embedding_model": "text-embedding-3-large",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:05.012279+00:00",
+      "n_fit": 50000,
+      "rank_full": 256,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 8.711942672729492,
+      "eigvals_max": 0.021474922075867653,
+      "eigvals_min": 0.00017702292825561017,
+      "fit_s": 0.173,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3large_pl_mixed50k_kw_mrl256",
+      "W_shape": [
+        256,
+        256
+      ],
+      "mu_shape": [
+        256
+      ],
+      "eigvals_shape": [
+        256
+      ],
+      "size_bytes": 264576
+    },
+    {
+      "name": "te3large_pl_mixed50k_kw_mrl3072",
+      "dim": 3072,
+      "embedding_model": "text-embedding-3-large",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:57.918531+00:00",
+      "n_fit": 50000,
+      "rank_full": 3067,
+      "rank_deficient": 5,
+      "top_ev_ratio_pre": 86.62535095214844,
+      "eigvals_max": 0.01926514506340027,
+      "eigvals_min": 3.8142319164213845e-13,
+      "fit_s": 7.774,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3large_pl_mixed50k_kw_mrl3072",
+      "W_shape": [
+        3072,
+        3072
+      ],
+      "mu_shape": [
+        3072
+      ],
+      "eigvals_shape": [
+        3072
+      ],
+      "size_bytes": 37773696
+    },
+    {
+      "name": "te3large_pl_mixed50k_kw_mrl512",
+      "dim": 512,
+      "embedding_model": "text-embedding-3-large",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:04.664437+00:00",
+      "n_fit": 50000,
+      "rank_full": 511,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 17.637035369873047,
+      "eigvals_max": 0.0230382289737463,
+      "eigvals_min": 1.7969645327298167e-08,
+      "fit_s": 0.249,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3large_pl_mixed50k_kw_mrl512",
+      "W_shape": [
+        512,
+        512
+      ],
+      "mu_shape": [
+        512
+      ],
+      "eigvals_shape": [
+        512
+      ],
+      "size_bytes": 1053056
+    },
+    {
+      "name": "te3large_pl_mixed50k_kw_mrl768",
+      "dim": 768,
+      "embedding_model": "text-embedding-3-large",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:04.235297+00:00",
+      "n_fit": 50000,
+      "rank_full": 767,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 24.912460327148438,
+      "eigvals_max": 0.021710224449634552,
+      "eigvals_min": 1.0656660442975863e-08,
+      "fit_s": 0.402,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3large_pl_mixed50k_kw_mrl768",
+      "W_shape": [
+        768,
+        768
+      ],
+      "mu_shape": [
+        768
+      ],
+      "eigvals_shape": [
+        768
+      ],
+      "size_bytes": 2365824
+    },
+    {
+      "name": "te3small_pl_mixed50k_chunks_mrl1024",
+      "dim": 1024,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:32.834631+00:00",
+      "n_fit": 129181,
+      "rank_full": 1023,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 42.147701263427734,
+      "eigvals_max": 0.030588475987315178,
+      "eigvals_min": 1.4988711427577073e-07,
+      "fit_s": 1.699,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 49130810,
+      "corpus_fingerprint": "85faa7cd1eba5da9311539671630e249c10a280935ec06c17b250f102da7ee09",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_chunks_mrl1024",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
+    },
+    {
+      "name": "te3small_pl_mixed50k_chunks_mrl1536",
+      "dim": 1536,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:30.859127+00:00",
+      "n_fit": 129181,
+      "rank_full": 1534,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 59.925838470458984,
+      "eigvals_max": 0.029395442456007004,
+      "eigvals_min": 8.992863342882629e-08,
+      "fit_s": 2.695,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 49130810,
+      "corpus_fingerprint": "85faa7cd1eba5da9311539671630e249c10a280935ec06c17b250f102da7ee09",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_chunks_mrl1536",
+      "W_shape": [
+        1536,
+        1536
+      ],
+      "mu_shape": [
+        1536
+      ],
+      "eigvals_shape": [
+        1536
+      ],
+      "size_bytes": 9449856
+    },
+    {
+      "name": "te3small_pl_mixed50k_chunks_mrl256",
+      "dim": 256,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:35.404330+00:00",
+      "n_fit": 129181,
+      "rank_full": 256,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 11.991071701049805,
+      "eigvals_max": 0.0352926179766655,
+      "eigvals_min": 0.0002549675991758704,
+      "fit_s": 0.386,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 49130810,
+      "corpus_fingerprint": "85faa7cd1eba5da9311539671630e249c10a280935ec06c17b250f102da7ee09",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_chunks_mrl256",
+      "W_shape": [
+        256,
+        256
+      ],
+      "mu_shape": [
+        256
+      ],
+      "eigvals_shape": [
+        256
+      ],
+      "size_bytes": 264576
+    },
+    {
+      "name": "te3small_pl_mixed50k_chunks_mrl512",
+      "dim": 512,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:34.738503+00:00",
+      "n_fit": 129181,
+      "rank_full": 512,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 22.568740844726562,
+      "eigvals_max": 0.0325775183737278,
+      "eigvals_min": 3.28992632603331e-06,
+      "fit_s": 0.537,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 49130810,
+      "corpus_fingerprint": "85faa7cd1eba5da9311539671630e249c10a280935ec06c17b250f102da7ee09",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_chunks_mrl512",
+      "W_shape": [
+        512,
+        512
+      ],
+      "mu_shape": [
+        512
+      ],
+      "eigvals_shape": [
+        512
+      ],
+      "size_bytes": 1053056
+    },
+    {
+      "name": "te3small_pl_mixed50k_chunks_mrl768",
+      "dim": 768,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:33.925405+00:00",
+      "n_fit": 129181,
+      "rank_full": 767,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 32.388858795166016,
+      "eigvals_max": 0.031334053725004196,
+      "eigvals_min": 2.1056600019164762e-07,
+      "fit_s": 0.825,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 49130810,
+      "corpus_fingerprint": "85faa7cd1eba5da9311539671630e249c10a280935ec06c17b250f102da7ee09",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_chunks_mrl768",
+      "W_shape": [
+        768,
+        768
+      ],
+      "mu_shape": [
+        768
+      ],
+      "eigvals_shape": [
+        768
+      ],
+      "size_bytes": 2365824
+    },
+    {
+      "name": "te3small_pl_mixed50k_doc_mrl1024",
+      "dim": 1024,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:26.424528+00:00",
+      "n_fit": 50042,
+      "rank_full": 1023,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 50.25818634033203,
+      "eigvals_max": 0.036130692809820175,
+      "eigvals_min": 1.4101888723416778e-07,
+      "fit_s": 0.787,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 45588703,
+      "corpus_fingerprint": "6e9e965ffbb6dbe6897620601aeea5fa2c631d7002d869688012fe15f382849d",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_doc_mrl1024",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
+    },
+    {
+      "name": "te3small_pl_mixed50k_doc_mrl1536",
+      "dim": 1536,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:25.460300+00:00",
+      "n_fit": 50042,
+      "rank_full": 1534,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 71.94599151611328,
+      "eigvals_max": 0.03493798151612282,
+      "eigvals_min": 8.29565678373001e-08,
+      "fit_s": 1.394,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 45588703,
+      "corpus_fingerprint": "6e9e965ffbb6dbe6897620601aeea5fa2c631d7002d869688012fe15f382849d",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_doc_mrl1536",
+      "W_shape": [
+        1536,
+        1536
+      ],
+      "mu_shape": [
+        1536
+      ],
+      "eigvals_shape": [
+        1536
+      ],
+      "size_bytes": 9449856
+    },
+    {
+      "name": "te3small_pl_mixed50k_doc_mrl256",
+      "dim": 256,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:27.760264+00:00",
+      "n_fit": 50042,
+      "rank_full": 256,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 14.014793395996094,
+      "eigvals_max": 0.040661998093128204,
+      "eigvals_min": 0.0002669095993041992,
+      "fit_s": 0.149,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 45588703,
+      "corpus_fingerprint": "6e9e965ffbb6dbe6897620601aeea5fa2c631d7002d869688012fe15f382849d",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_doc_mrl256",
+      "W_shape": [
+        256,
+        256
+      ],
+      "mu_shape": [
+        256
+      ],
+      "eigvals_shape": [
+        256
+      ],
+      "size_bytes": 264576
+    },
+    {
+      "name": "te3small_pl_mixed50k_doc_mrl512",
+      "dim": 512,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:27.381971+00:00",
+      "n_fit": 50042,
+      "rank_full": 512,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 26.284648895263672,
+      "eigvals_max": 0.03757966309785843,
+      "eigvals_min": 2.9609916509798495e-06,
+      "fit_s": 0.221,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 45588703,
+      "corpus_fingerprint": "6e9e965ffbb6dbe6897620601aeea5fa2c631d7002d869688012fe15f382849d",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_doc_mrl512",
+      "W_shape": [
+        512,
+        512
+      ],
+      "mu_shape": [
+        512
+      ],
+      "eigvals_shape": [
+        512
+      ],
+      "size_bytes": 1053056
+    },
+    {
+      "name": "te3small_pl_mixed50k_doc_mrl768",
+      "dim": 768,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:24:26.985912+00:00",
+      "n_fit": 50042,
+      "rank_full": 767,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 38.02761459350586,
+      "eigvals_max": 0.03643486648797989,
+      "eigvals_min": 2.007689801075685e-07,
+      "fit_s": 0.389,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 45588703,
+      "corpus_fingerprint": "6e9e965ffbb6dbe6897620601aeea5fa2c631d7002d869688012fe15f382849d",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_doc_mrl768",
+      "W_shape": [
+        768,
+        768
+      ],
+      "mu_shape": [
+        768
+      ],
+      "eigvals_shape": [
+        768
+      ],
+      "size_bytes": 2365824
+    },
+    {
+      "name": "te3small_pl_mixed50k_kw_mrl1024",
+      "dim": 1024,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:48.501944+00:00",
+      "n_fit": 50000,
+      "rank_full": 1023,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 27.427915573120117,
+      "eigvals_max": 0.019347259774804115,
+      "eigvals_min": 1.4342430176839116e-07,
+      "fit_s": 0.734,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_kw_mrl1024",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
+    },
+    {
+      "name": "te3small_pl_mixed50k_kw_mrl1536",
+      "dim": 1536,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:47.564779+00:00",
+      "n_fit": 50000,
+      "rank_full": 1534,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 40.04384994506836,
+      "eigvals_max": 0.018968308344483376,
+      "eigvals_min": 8.622998848295538e-08,
+      "fit_s": 1.234,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_kw_mrl1536",
+      "W_shape": [
+        1536,
+        1536
+      ],
+      "mu_shape": [
+        1536
+      ],
+      "eigvals_shape": [
+        1536
+      ],
+      "size_bytes": 9449856
+    },
+    {
+      "name": "te3small_pl_mixed50k_kw_mrl256",
+      "dim": 256,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:49.831850+00:00",
+      "n_fit": 50000,
+      "rank_full": 256,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 7.504150867462158,
+      "eigvals_max": 0.021795032545924187,
+      "eigvals_min": 0.00023074964701663703,
+      "fit_s": 0.147,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_kw_mrl256",
+      "W_shape": [
+        256,
+        256
+      ],
+      "mu_shape": [
+        256
+      ],
+      "eigvals_shape": [
+        256
+      ],
+      "size_bytes": 264576
+    },
+    {
+      "name": "te3small_pl_mixed50k_kw_mrl512",
+      "dim": 512,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:49.520102+00:00",
+      "n_fit": 50000,
+      "rank_full": 512,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 14.181981086730957,
+      "eigvals_max": 0.01977895200252533,
+      "eigvals_min": 3.570336502889404e-06,
+      "fit_s": 0.258,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_kw_mrl512",
+      "W_shape": [
+        512,
+        512
+      ],
+      "mu_shape": [
+        512
+      ],
+      "eigvals_shape": [
+        512
+      ],
+      "size_bytes": 1053056
+    },
+    {
+      "name": "te3small_pl_mixed50k_kw_mrl768",
+      "dim": 768,
+      "embedding_model": "text-embedding-3-small",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-02T15:23:49.081373+00:00",
+      "n_fit": 50000,
+      "rank_full": 767,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 21.16935920715332,
+      "eigvals_max": 0.01979811117053032,
+      "eigvals_min": 2.019053226831602e-07,
+      "fit_s": 0.382,
+      "embedding_cost_usd": 0.0,
+      "embedding_tokens": 402934,
+      "corpus_fingerprint": "de0d79d6da8373d2733a71c2f93812a67df2237fd2f78b55c0c9928a55762f25",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/te3small_pl_mixed50k_kw_mrl768",
       "W_shape": [
         768,
         768

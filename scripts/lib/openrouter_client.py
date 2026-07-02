@@ -65,8 +65,15 @@ def post_embed_batch(
     timeout: float,
     provider_order: list[str] | None = None,
     ignore_providers: list[str] | None = None,
+    url: str = OPENROUTER_URL,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     """Send one batch to ``/embeddings``.
+
+    ``url`` defaults to OpenRouter but accepts any OpenAI-compatible
+    ``/v1/embeddings`` endpoint (e.g. api.openai.com).  The
+    OpenRouter-specific ``provider`` block is only attached when
+    posting to OpenRouter itself — other backends reject unknown
+    payload keys.
 
     Returns ``(arr, usage)`` where ``arr`` is ``(len(texts), dim)``
     float32 and ``usage`` is the raw ``body["usage"]`` dict (may be
@@ -83,9 +90,10 @@ def post_embed_batch(
         "input": texts,
         "encoding_format": "float",
     }
-    block = _build_provider_block(provider_order, ignore_providers)
-    if block is not None:
-        payload["provider"] = block
+    if url == OPENROUTER_URL:
+        block = _build_provider_block(provider_order, ignore_providers)
+        if block is not None:
+            payload["provider"] = block
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -93,7 +101,7 @@ def post_embed_batch(
         "X-Title": "polish-whitening-backgrounds",
     }
 
-    r = session.post(OPENROUTER_URL, json=payload, headers=headers, timeout=timeout)
+    r = session.post(url, json=payload, headers=headers, timeout=timeout)
     r.raise_for_status()
     body = r.json()
 

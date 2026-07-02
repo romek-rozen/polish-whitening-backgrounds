@@ -30,6 +30,14 @@ OPENROUTER_TO_HF_TOKENIZER: dict[str, str] = {
     "qwen/qwen3-embedding-8b":   "Qwen/Qwen3-Embedding-8B",
 }
 
+# OpenAI model id → tiktoken encoding.  These models are tokenised
+# locally via ``tiktoken`` instead of a HF ``tokenizer.json``.
+OPENAI_TO_TIKTOKEN: dict[str, str] = {
+    "text-embedding-3-small": "cl100k_base",
+    "text-embedding-3-large": "cl100k_base",
+    "text-embedding-ada-002": "cl100k_base",
+}
+
 
 def model_slug(model: str) -> str:
     """Filesystem-safe slug for an OpenRouter model id.
@@ -94,6 +102,35 @@ def truncate_to_tokens(
     return n_capped, max_seen, total
 
 
+def truncate_to_tokens_tiktoken(
+    texts: list[str], encoding_name: str, max_tokens: int,
+) -> tuple[int, int, int]:
+    """``truncate_to_tokens`` twin for OpenAI models via ``tiktoken``.
+
+    Same in-place contract, same ``(n_capped, max_seen, total)``
+    return.  ``encode_ordinary_batch`` is Rust-side and multi-threaded,
+    and unlike the HF crate its return is a plain list-of-int-lists, so
+    no per-block GC dance is needed.
+    """
+    import tiktoken
+
+    enc = tiktoken.get_encoding(encoding_name)
+    n_capped = 0
+    max_seen = 0
+    total = 0
+    for start in range(0, len(texts), 1000):
+        block = texts[start:start + 1000]
+        for j, ids in enumerate(enc.encode_ordinary_batch(block)):
+            m = len(ids)
+            total += m
+            if m > max_seen:
+                max_seen = m
+            if m > max_tokens:
+                texts[start + j] = enc.decode(ids[:max_tokens])
+                n_capped += 1
+    return n_capped, max_seen, total
+
+
 def resolve_and_apply_token_cap(
     texts: list[str], model: str, max_tokens: int,
     tokenizer_repo: str | None = None,
@@ -102,9 +139,25 @@ def resolve_and_apply_token_cap(
     truncate in place, log a summary, return ``(n_capped, max_seen,
     total)``.
 
-    Raises ``SystemExit`` if there's no mapping for *model* and the
-    caller didn't override ``tokenizer_repo``.
+    OpenAI models (``OPENAI_TO_TIKTOKEN``) are routed to ``tiktoken``
+    instead.  Raises ``SystemExit`` if there's no mapping for *model*
+    and the caller didn't override ``tokenizer_repo``.
     """
+    tiktoken_enc = OPENAI_TO_TIKTOKEN.get(model.lower())
+    if tiktoken_enc and not tokenizer_repo:
+        logger.info("tokenizing via tiktoken %s", tiktoken_enc)
+        t0 = time.monotonic()
+        n_capped, max_seen, total_tok = truncate_to_tokens_tiktoken(
+            texts, tiktoken_enc, max_tokens,
+        )
+        dt = time.monotonic() - t0
+        logger.info(
+            "tokenized %d docs in %.1fs: total=%s tokens, max=%d, "
+            "truncated=%d at %d-tok cap",
+            len(texts), dt, f"{total_tok:,}", max_seen, n_capped, max_tokens,
+        )
+        return n_capped, max_seen, total_tok
+
     repo = tokenizer_repo or OPENROUTER_TO_HF_TOKENIZER.get(model.lower())
     if not repo:
         raise SystemExit(

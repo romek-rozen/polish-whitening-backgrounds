@@ -47,7 +47,7 @@ from lib.chunk_store import (
 )
 from lib.dotenv import load_dotenv
 from lib.openrouter_client import (
-    TRANSIENT_STATUSES, post_embed_batch,
+    OPENROUTER_URL, TRANSIENT_STATUSES, post_embed_batch,
 )
 from lib.tokenizer import model_slug, resolve_and_apply_token_cap
 
@@ -73,6 +73,7 @@ def embed_corpus(
     ignore_providers: list[str] | None = None,
     max_tokens_per_doc: int = 30_000,
     tokenizer_repo: str | None = None,
+    base_url: str = OPENROUTER_URL,
 ) -> dict[str, Any]:
     slug = model_slug(model)
     state = detect_resume_state(out_dir, slug)
@@ -130,6 +131,7 @@ def embed_corpus(
                     timeout=request_timeout,
                     provider_order=provider_order,
                     ignore_providers=ignore_providers,
+                    url=base_url,
                 )
                 break
             except requests.HTTPError as e:
@@ -333,6 +335,18 @@ def main(argv: list[str] | None = None) -> int:
         help="Override HF repo for tokenizer.json (default: derived from "
              "--model via OPENROUTER_TO_HF_TOKENIZER).",
     )
+    ap.add_argument(
+        "--base-url", default=OPENROUTER_URL,
+        help="OpenAI-compatible /v1/embeddings endpoint (default: "
+             "OpenRouter).  E.g. https://api.openai.com/v1/embeddings "
+             "for OpenAI's text-embedding-3-* models.",
+    )
+    ap.add_argument(
+        "--api-key-env", default="OPENROUTER_API_KEY",
+        help="Name of the env var holding the API key for --base-url "
+             "(default: OPENROUTER_API_KEY; use OPENAI_API_KEY with "
+             "api.openai.com).",
+    )
     args = ap.parse_args(argv)
 
     logging.basicConfig(
@@ -341,9 +355,9 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     load_dotenv(REPO_ROOT / ".env")
-    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    api_key = os.environ.get(args.api_key_env, "").strip()
     if not api_key:
-        logger.error("OPENROUTER_API_KEY not set — see .env.example")
+        logger.error("%s not set — see .env.example", args.api_key_env)
         return 2
 
     if not args.corpus.is_file():
@@ -375,6 +389,7 @@ def main(argv: list[str] | None = None) -> int:
         ignore_providers=ignore_providers,
         max_tokens_per_doc=args.max_tokens_per_doc,
         tokenizer_repo=(args.tokenizer_repo or None),
+        base_url=args.base_url,
     )
     return 0
 
