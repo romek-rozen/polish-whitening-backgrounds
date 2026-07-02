@@ -1,6 +1,6 @@
 {
   "name": "te3small_pl_mixed50k_doc_mrl1024",
-  "created_at": "2026-07-02T15:24:26.424528+00:00",
+  "created_at": "2026-07-02T16:24:22.811339+00:00",
   "purpose": "ZCA whitening background for text-embedding-3-small on Polish text (no per-document character cap). Drop into siteFocus / any retrieval pipeline that L2-normalises Qwen3 embeddings.",
   "language": "pl",
   "embedding_model": "text-embedding-3-small",
@@ -28,7 +28,7 @@
       0.01639784872531891,
       0.013376581482589245
     ],
-    "fit_s": 0.787
+    "fit_s": 0.765
   },
   "notes": [
     "Apply: x_white = (x - mu) @ W where x is unit-L2 in `embedding_dim` space.",

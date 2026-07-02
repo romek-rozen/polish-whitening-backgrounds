@@ -12,7 +12,8 @@ Public, drop-in artefact repo:
 [https://github.com/romek-rozen/polish-whitening-backgrounds](https://github.com/romek-rozen/polish-whitening-backgrounds)
 
 Pre-fitted ZCA whitening backgrounds (`W_A.npy`, `mu_A.npy`,
-`eigvals_A.npy`) for the Qwen3-Embedding family on Polish text. Goal:
+`eigvals_A.npy`) for the Qwen3-Embedding family **and OpenAI
+text-embedding-3-small/-large** on Polish text. Goal:
 **colleagues don't recompute μ and Σ on a 50k-doc Polish corpus** —
 they clone, load via `loader.py`, apply. Provenance + diagnostics in
 each `backgrounds/<name>/<name>.meta.json`.
@@ -24,21 +25,27 @@ this repo's `data/` (git-ignored). Never read or write to
 or any of its `data/` / `results/` / `models/` subtrees — that's the
 user's main project, not this one.
 
-## Current state (2026-06-10)
+## Current state (2026-07-02)
 
-**Shipped on GitHub `main`** (22/22 backgrounds, COMPLETE):
+**Shipped on GitHub `main`** (69 backgrounds, COMPLETE):
 
 | Background dirs | Dim range | Status |
 |---|---:|---|
-| `qwen3_4b_pl_mixed50k_doc_mrl{2560,1536,1024,768,512}/` | 2560…512 | shipped |
-| `qwen3_4b_pl_mixed50k_chunks_mrl{2560,1536,1024,768,512}/` | 2560…512 | shipped |
-| `qwen3_8b_pl_mixed50k_doc_mrl{4096,3072,2048,1024,768,512}/` | 4096…512 | shipped |
-| `qwen3_8b_pl_mixed50k_chunks_mrl{4096,3072,2048,1024,768,512}/` | 4096…512 | shipped |
+| `qwen3_4b_pl_mixed50k_{doc,chunks,kw}_mrl{2560,1536,1024,768,512}/` | 2560…512 | shipped |
+| `qwen3_8b_pl_mixed50k_{doc,chunks,kw}_mrl{4096,3072,2048,1024,768,512}/` | 4096…512 | shipped |
+| `te3small_pl_mixed50k_{doc,chunks,kw}_mrl{1536,1024,768,512,256}/` | 1536…256 | shipped |
+| `te3large_pl_mixed50k_{doc,chunks,kw}_mrl{3072,2048,1536,1024,768,512,256}/` | 3072…256 | shipped |
 
-Total embedding cost across all four runs: ~$2.77 (4b doc $0.92,
-8b doc $0.46, 4b chunks $0.95, 8b chunks $0.48).  The orchestrator is
-`scripts/run_full.sh`; chunk runs were launched with
-`NAME_PREFIX=pl_mixed50k_chunks` and `CORPUS=data/corpus_chunks_512_64.parquet`.
+Spend: Qwen doc+chunks ~$2.77 via OpenRouter (4b doc $0.92, 8b doc
+$0.46, 4b chunks $0.95, 8b chunks $0.48); OpenAI doc+chunks ~$14 via
+api.openai.com (~95 M tokens; 3-small $0.02/M, 3-large $0.13/M); the
+four `kw` families cost pennies (~0.4 M tokens each). Orchestrators:
+`scripts/run_full.sh` (Qwen doc; chunks with
+`NAME_PREFIX=pl_mixed50k_chunks` + `CORPUS=data/corpus_chunks_512_64.parquet`),
+`scripts/run_kw_fits.sh` (all kw fits), `scripts/run_oai_fits.sh`
+(OpenAI doc+chunks fits). The `kw` granularity exists for keyword
+grouping / clustering (Google Ads use case) — whole-doc backgrounds
+misfit on 1–5-word phrases.
 
 **Retired** (still in git history, removed from `main` working tree):
 - `polish_mixed_50k_v1{,_mrl1024,_mrl1536}/`
@@ -59,10 +66,16 @@ Replaced because: (a) the v1 mix used noisier mC4 + sentence-only KLEJ;
 - `data/corpus_chunks_512_64.parquet` — 129 181 chunks from the
   splitter (`lib.chunker`, post merge_tiny + strip_overlap_fragments).
   Used for the shipped chunk-level fits.
-- `data/chunks_qwen_qwen3-embedding-{4b,8b}/` — doc-level embedding
-  output of the embed step.  Resumable; ~700 MB each at completion.
-- `data/chunks_qwen_qwen3-embedding-{4b,8b}_chunks/` — chunk-level
-  embedding output (129 181 rows each).
+- `data/corpus_keywords.parquet` — 50 000 keyword-like phrases mined
+  by `build_corpus_keywords.py` (needs `data/stopwords-pl.txt`,
+  downloaded from stopwords-iso/stopwords-pl).  Used for the `kw` fits.
+- `data/chunks_qwen_qwen3-embedding-{4b,8b}/`,
+  `data/chunks_text-embedding-3-{small,large}/` — doc-level embedding
+  output of the embed step.  Resumable; up to ~700 MB each.
+- `data/chunks_corpus/chunks_<model>/` — chunk-level embedding output
+  (129 181 rows each, all four models).
+- `data/kw_corpus/chunks_<model>/` — keyword-level embedding output
+  (50 000 rows each, all four models).
 
 ## Naming convention
 
@@ -70,22 +83,25 @@ Replaced because: (a) the v1 mix used noisier mC4 + sentence-only KLEJ;
 <model>_<corpus>_<granularity>_mrl<dim>/
    │       │          │            │
    │       │          │            └─ mrl<dim>     MRL refit at dim N
-   │       │          └─ doc | chunks              embedding granularity
+   │       │          └─ doc | chunks | kw         embedding granularity
    │       └─ pl_mixed50k                          language + corpus tag
-   └─ qwen3_4b | qwen3_8b                          embedding model
+   └─ qwen3_4b | qwen3_8b | te3small | te3large    embedding model
 ```
 
 Model first means `ls backgrounds | grep qwen3_4b` lists every
-variant of that model in one shot.
+variant of that model in one shot.  `te3small` / `te3large` =
+OpenAI `text-embedding-3-small` / `-large`.
 
 - `_doc_` — one embedding per whole document.
 - `_chunks_` — one embedding per ~512-token chunk with 64-token
   overlap, produced by `scripts/lib/chunker.py`.
+- `_kw_` — one embedding per keyword-like phrase (1–5 words), mined
+  by `scripts/build_corpus_keywords.py`.
 
 Granularity contract: a background's fit-time granularity MUST match
 its inference-time granularity.  Don't whiten paragraphs with a
-doc-level background or full documents with a chunks-level background
-— see [`GOTCHAS.md`](GOTCHAS.md) §1.
+doc-level background, or keyword lists with anything but a `kw`
+background — see [`GOTCHAS.md`](GOTCHAS.md) §1.
 
 `run_full.sh` builds names as
 `${MODEL_SHORT}_${NAME_PREFIX}_mrl${DIM}` where `MODEL_SHORT` is the
@@ -106,7 +122,19 @@ last segment of the OpenRouter id with `-` → `_` (so
 For chunk-level fits an extra phase 1.5 runs first:
 `build_corpus_chunks.py --chunk-size 512 --chunk-overlap 64`
 producing `data/corpus_chunks_512_64.parquet` which the embed step
-then consumes via `--corpus` instead of `corpus.parquet`.
+then consumes via `--corpus` instead of `corpus.parquet`.  For
+keyword-level fits the analogue is `build_corpus_keywords.py` →
+`data/corpus_keywords.parquet` (embed with `--out data/kw_corpus/`),
+then `run_kw_fits.sh`.
+
+OpenAI models run through the **same** embed script against
+`api.openai.com`: add `--base-url https://api.openai.com/v1/embeddings
+--api-key-env OPENAI_API_KEY`, and use `--max-tokens-per-doc 8191`
+for the doc corpus (OpenAI's hard input cap; tokenised via tiktoken
+`cl100k_base` — see `OPENAI_TO_TIKTOKEN` in `scripts/lib/tokenizer.py`).
+Their doc/chunks fits are orchestrated by `run_oai_fits.sh`.  Both
+fit runners refuse to fit on incomplete embeddings (manifest row
+count vs corpus row count).
 
 Every script is idempotent — re-running `run_full.sh` resumes from
 disk state without losing work or double-billing OpenRouter.  See
@@ -127,12 +155,20 @@ In `scripts/build_corpus.py`:
 In `scripts/embed_via_openrouter.py`:
 - Default `--max-tokens-per-doc 30000` (Qwen3's context is 32k; we
   pre-flight truncate via Qwen3's own `tokenizer.json` pulled from HF).
+  For OpenAI models use `8191` (their hard cap) — truncation then
+  routes through tiktoken automatically.
 - Adaptive batch: start 16, max 32, min 1; halves on 429 / 5xx /
-  200-but-no-data, grows back to 32 after a clean streak.
+  200-but-no-data, grows back after a clean streak.  For short-phrase
+  corpora crank it (`--start-batch 64 --max-batch 256`) — the default
+  batch wastes 50 min on what takes 5.
 - `--ignore-providers siliconflow` by default (it's ~4× the price of
-  Nebius / DeepInfra on Qwen3 embeddings).
+  Nebius / DeepInfra on Qwen3 embeddings); the provider block is only
+  sent to OpenRouter, never to other `--base-url` backends.
 - Resume: by chunk_NNNN.npy file count.  Skipped docs get a
   zero-vector placeholder so chunk row N maps to corpus row N.
+- `cost_usd` in cost reports is OpenRouter-only — the OpenAI API
+  doesn't return a `cost` field, so those reports show tokens but
+  $0.00; compute spend from tokens × list price.
 
 In `scripts/run_full.sh`:
 - `MODELS="qwen/qwen3-embedding-4b qwen/qwen3-embedding-8b"`

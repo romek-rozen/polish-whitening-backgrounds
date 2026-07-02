@@ -1,30 +1,35 @@
-# Polskie tła ZCA whitening dla Qwen3-Embedding (4B & 8B)
+# Polskie tła ZCA whitening dla Qwen3-Embedding i OpenAI text-embedding-3
 
 🇬🇧 **English:** [README.md](./README.md)
 
 Gotowe artefakty whiteningu (`W_A.npy`, `mu_A.npy`, `eigvals_A.npy`) do
-podpięcia w siteFocus / dowolnym pipelinie retrievalu używającym
-[`Qwen/Qwen3-Embedding-4B`](https://huggingface.co/Qwen/Qwen3-Embedding-4B)
-lub [`Qwen/Qwen3-Embedding-8B`](https://huggingface.co/Qwen/Qwen3-Embedding-8B)
+podpięcia w siteFocus / dowolnym pipelinie retrievalu lub klastrowania
+używającym
+[`Qwen/Qwen3-Embedding-4B`](https://huggingface.co/Qwen/Qwen3-Embedding-4B),
+[`Qwen/Qwen3-Embedding-8B`](https://huggingface.co/Qwen/Qwen3-Embedding-8B),
+`text-embedding-3-small` lub `text-embedding-3-large`
 na tekstach polskich. Oszczędzasz sobie próbkowanie korpusu, 50k
 embeddingów i ZCA SVD — klonujesz, ładujesz, używasz.
 
 Licencja: [CC-BY-4.0](LICENSE)
 
-> **Status (2026-06-10):** wszystkie 22 tła gotowe i w repo. Dwa
-> modele × dwie granularności × siatka MRL. Korpus to `pl_mixed50k`
-> — 22 500 Wikipedia + 27 500 FineWeb-2 PL + 42 wątki oasst =
-> **50 042 dokumentów** (akapity ≥500 znaków, ~46 M tokenów).
+> **Status (2026-07-02):** **69 teł w repo** — cztery modele × do
+> trzech granularności × pełna siatka MRL/dimensions. Korpus to
+> `pl_mixed50k` — 22 500 Wikipedia + 27 500 FineWeb-2 PL + 42 wątki
+> oasst = **50 042 dokumentów** (akapity ≥500 znaków, ~46 M tokenów).
 > Granularność `chunks` to 129 181 chunków po 512 tokenów z
-> 64-tokenowym overlapem (RecursiveCharacterTextSplitter + merge
-> sub-100-char chunków + strip overlap fragments).
+> 64-tokenowym overlapem (`lib.chunker`). Granularność `kw` to
+> **50 000 polskich fraz keyword-podobnych** (1–5 słów) wydobytych z
+> tego samego korpusu — fitowana pod **grupowanie / klastrowanie
+> krótkich fraz wyszukiwania** (np. listy słów kluczowych Google
+> Ads), gdzie tła dokumentowe po cichu nie pasują.
 >
-> | Model | Granularność | Refity MRL |
+> | Model | Granularności | Refity MRL |
 > |---|---|---|
-> | Qwen3-Embedding-4B | `doc` | `qwen3_4b_pl_mixed50k_doc_mrl{2560, 1536, 1024, 768, 512}` |
-> | Qwen3-Embedding-4B | `chunks` | `qwen3_4b_pl_mixed50k_chunks_mrl{2560, 1536, 1024, 768, 512}` |
-> | Qwen3-Embedding-8B | `doc` | `qwen3_8b_pl_mixed50k_doc_mrl{4096, 3072, 2048, 1024, 768, 512}` |
-> | Qwen3-Embedding-8B | `chunks` | `qwen3_8b_pl_mixed50k_chunks_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+> | Qwen3-Embedding-4B | `doc`, `chunks`, `kw` | `qwen3_4b_pl_mixed50k_{doc,chunks,kw}_mrl{2560, 1536, 1024, 768, 512}` |
+> | Qwen3-Embedding-8B | `doc`, `chunks`, `kw` | `qwen3_8b_pl_mixed50k_{doc,chunks,kw}_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+> | text-embedding-3-small | `doc`, `chunks`, `kw` | `te3small_pl_mixed50k_{doc,chunks,kw}_mrl{1536, 1024, 768, 512, 256}` |
+> | text-embedding-3-large | `doc`, `chunks`, `kw` | `te3large_pl_mixed50k_{doc,chunks,kw}_mrl{3072, 2048, 1536, 1024, 768, 512, 256}` |
 >
 > Wcześniejsze `polish_mixed_50k_v1{,_mrl1024,_mrl1536}`,
 > `corpus205_n3155` i `polish_smoke_1500` zostały wycofane (inny
@@ -35,10 +40,11 @@ Licencja: [CC-BY-4.0](LICENSE)
 > ⚠️ **Granularność ma znaczenie.** Warianty `doc` są fitowane na
 > **całych dokumentach** (jeden embedding na doc z FineWeb-2 / wiki
 > / oasst); warianty `chunks` — na 129 181 chunkach po 512 tokenów
-> z 64-tokenowym overlapem. Dopasuj granularność tła do
-> granularności tego, co rzeczywiście trzymasz w indeksie
-> retrievalowym. Dlaczego mieszanie granularności po cichu psuje
-> whitening: [GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity).
+> z 64-tokenowym overlapem; warianty `kw` — na 50 000 krótkich fraz
+> (1–5 słów). Dopasuj granularność tła do granularności tego, co
+> rzeczywiście trzymasz w indeksie / klastrujesz. Dlaczego mieszanie
+> granularności po cichu psuje whitening:
+> [GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity).
 
 ## Po co whitening?
 
@@ -49,7 +55,11 @@ cosinusowy robi się ciasny: większość par wygląda na "podobne" nawet
 gdy w rzeczywistości nie są. Na tym polskim korpusie stosunek
 największej wartości własnej kowariancji embeddingów do średniej
 mierzy się w dziesiątkach (vs. ~1× dla idealnego rozkładu
-izotropowego).
+izotropowego) — a dla **krótkich fraz keywordowych jest znacznie
+gorzej**: 81× dla Qwen3-4B, 150× dla Qwen3-8B, 40× dla
+text-embedding-3-small. To jest dokładnie ten mechanizm, przez który
+"każdy keyword wygląda podobnie do każdego" i grupowanie słów
+kluczowych się sypie.
 
 **Transformacja ZCA whitening** przywraca równowagę przestrzeni:
 
@@ -85,13 +95,13 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
-# Zwraca 22 nazwy — 4B/8B × doc/chunks × siatka MRL:
-# ['qwen3_4b_pl_mixed50k_doc_mrl2560', '..._mrl1536', '..._mrl1024', '..._mrl768', '..._mrl512',
-#  'qwen3_4b_pl_mixed50k_chunks_mrl2560', '..._mrl1536', '..._mrl1024', '..._mrl768', '..._mrl512',
-#  'qwen3_8b_pl_mixed50k_doc_mrl4096', '..._mrl3072', '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512',
-#  'qwen3_8b_pl_mixed50k_chunks_mrl4096', '..._mrl3072', '..._mrl2048', '..._mrl1024', '..._mrl768', '..._mrl512']
+# Zwraca 69 nazw — 4 modele × {doc, chunks, kw} × siatka MRL, np.:
+# ['qwen3_4b_pl_mixed50k_doc_mrl2560',  … , 'qwen3_4b_pl_mixed50k_kw_mrl512',
+#  'qwen3_8b_pl_mixed50k_doc_mrl4096',  … , 'qwen3_8b_pl_mixed50k_kw_mrl512',
+#  'te3small_pl_mixed50k_doc_mrl1536',  … , 'te3small_pl_mixed50k_kw_mrl256',
+#  'te3large_pl_mixed50k_doc_mrl3072',  … , 'te3large_pl_mixed50k_kw_mrl256']
 
-# Dopasuj tło do faktycznie używanej kombinacji (model + slice wymiaru).
+# Dopasuj tło do faktycznie używanej kombinacji (model + granularność + slice wymiaru).
 bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
 print(bg.dim, bg.W.shape, bg.mu.shape)
 # 1024 (1024, 1024) (1024,)
@@ -149,25 +159,71 @@ Co jest ważne w tym wzorcu:
   + skalowanie per-oś; nie wyrzuca informacji, tylko przerozdziela
   wariancję na osie.
 
+## Grupowanie / klastrowanie słów kluczowych (granularność `kw`)
+
+Tła `_kw_` służą do innej roboty niż retrieval: **grupowania i
+klastrowania krótkich fraz wyszukiwania** — list keywordów Google
+Ads, zapytań z GSC, search terms reports. Tła dokumentowe tu nie
+pasują, bo rozkład embeddingów 3-wyrazowej frazy nie ma nic
+wspólnego z rozkładem 2000-znakowego akapitu (a anizotropia jest
+znacznie gorsza — patrz stosunki wartości własnych wyżej).
+
+```python
+import numpy as np
+from loader import load_background
+from sklearn.cluster import AgglomerativeClustering
+
+bg = load_background("te3small_pl_mixed50k_kw_mrl1536")
+
+keywords = ["buty do biegania", "buty biegowe damskie",
+            "kredyt hipoteczny kalkulator", ...]
+x = embed_openai(keywords)                # (n, 1536), L2-znormalizowane
+x_white = bg.apply(x)
+x_white /= np.linalg.norm(x_white, axis=1, keepdims=True) + 1e-12
+
+# Klastrowanie cosinusowe na wybielonych wektorach — klastry
+# przestają być sklejane przez monokulturę dominującego kierunku.
+labels = AgglomerativeClustering(
+    n_clusters=None, distance_threshold=0.55,
+    metric="cosine", linkage="average",
+).fit_predict(x_white)
+```
+
+Korpus fitu `kw` to 50 000 polskich fraz keyword-podobnych (1–5
+słów) wydobytych z `pl_mixed50k` — szczegóły w [Pochodzeniu
+danych](#pochodzenie-danych). Przybliża **kształt** przestrzeni
+embeddingów krótkich fraz, nie konkretną niszę — działa dla
+keywordów z dowolnej branży. Jeśli chcesz rozkład fitu jeszcze
+bliższy swoim kontom, domieszaj własne eksporty keywordów do
+`data/corpus_keywords.parquet` i refituj
+(`bash scripts/run_kw_fits.sh` — minuty pracy, grosze kosztu).
+
 ## Tła MRL
 
-Zarówno Qwen3-Embedding-4B jak i 8B to modele trenowane z Matryoshka
+Qwen3-Embedding-4B/8B to modele trenowane z Matryoshka
 Representation Learning — pierwsze `N < D` komponentów każdego wektora
-stanowi sam w sobie poprawny embedding (po L2-renormalizacji). Dla
-każdego modelu repo dostarcza osobny refit ZCA dla każdego popularnego
-`N`, więc whitening zgadza się z tym co Twój pipeline faktycznie
-podaje do indeksu przy inferencji:
+stanowi sam w sobie poprawny embedding (po L2-renormalizacji). Modele
+OpenAI text-embedding-3 mają ten sam mechanizm jako parametr API
+`dimensions` (skrócenie + L2-renormalizacja). Dla każdego modelu repo
+dostarcza osobny refit ZCA dla każdego popularnego `N`, więc
+whitening zgadza się z tym co Twój pipeline faktycznie podaje do
+indeksu przy inferencji:
 
 | Model | Wymiar natywny | Dostępne refity MRL |
 |---|---:|---|
 | Qwen3-Embedding-4B | 2560 | `mrl{2560, 1536, 1024, 768, 512}` |
 | Qwen3-Embedding-8B | 4096 | `mrl{4096, 3072, 2048, 1024, 768, 512}` |
+| text-embedding-3-small | 1536 | `mrl{1536, 1024, 768, 512, 256}` |
+| text-embedding-3-large | 3072 | `mrl{3072, 2048, 1536, 1024, 768, 512, 256}` |
 
 Lista wymiarów dla 8B trzyma się kanonicznych targetów MRL Qwen3
 (potęgi dwójki plus 768 i 3072); off-grid rozmiary jak 2560 / 1536 są
 pominięte dla 8B bo model nie był trenowany MRL przy tych wymiarach —
 slice matematycznie działa, ale recall byłby gorszy niż przy
-wytrenowanych wymiarach.
+wytrenowanych wymiarach. Dla modeli OpenAI `mrl<N>` pasuje zarówno do
+wektorów pobranych z `dimensions=N`, jak i do natywnych wektorów
+obciętych lokalnie do `N` + L2-renormalizowanych — per dokumentacja
+OpenAI to to samo.
 
 Łącz każde z nich **wyłącznie** z wektorami sliced + renormalised w
 ten sam sposób:
@@ -206,6 +262,17 @@ sam korpus jest cięty przez `lib.chunker`
 merge sub-100-char chunków forward, strip overlap fragments) i
 daje **129 181 chunków** (~47.5 M tokenów po embed).
 
+Dla granularności `kw` skrypt `scripts/build_corpus_keywords.py`
+wydobywa z tego samego korpusu **50 000 fraz keyword-podobnych**:
+lowercase n-gramy (1–5 słów), które nie zaczynają się ani nie kończą
+stopwordem (328-słowa lista
+[stopwords-iso/stopwords-pl](https://github.com/stopwords-iso/stopwords-pl))
+ani gołą liczbą, 3–60 znaków, częstość dokumentowa ≥ 3, próbkowane
+jednostajnie w obrębie kubełka długości przy realistycznym mixie
+listy keywordów (10% 1-słowo / 35% 2-słowa / 30% 3-słowa / 15%
+4-słowa / 10% 5-słów), seed = 42. Próbkowanie jednostajne (nie
+ważone częstością) unika nadreprezentacji webowego boilerplate'u.
+
 Wcześniejsze buildy (zachowane w historii gita) zawierały dodatkowo
 **KLEJ** (NKJP-NER + DYK + CDSC-R) i używały **mC4** zamiast
 FineWeb-2. KLEJ został usunięty bo median długości to 78 znaków —
@@ -222,7 +289,7 @@ Każdy `*.meta.json` zapisuje dokładne `sample_size_actual`,
 ## Struktura repo
 
 ```
-backgrounds/<name>/                   # 22 katalogi
+backgrounds/<name>/                   # 69 katalogów
   W_A.npy           # (dim, dim) float32  — zastosowanie: (x - mu) @ W
   mu_A.npy          # (dim,)    float32
   eigvals_A.npy     # (dim,)    float32   — diagnostyka, niepotrzebne przy apply
@@ -238,30 +305,33 @@ README.pl.md        # ten plik
 
 ## Jak zostały zbudowane
 
-Próbka mixu jak wyżej (seed=42), embedding każdego dokumentu (oraz
-każdego chunka) przez OpenRouter na `Qwen/Qwen3-Embedding-4B` i
-`Qwen/Qwen3-Embedding-8B`, fit ZCA w dwóch streamingowych
-przejściach po chunkach (`μ = E[x]`, `Σ = E[(x-μ)(x-μ)ᵀ]`), a potem
-`W = U · diag(1/√(S + ε)) · Uᵀ` z `SVD(Σ)`, gdzie `ε=1e-6`. Bez
-GPU. Łączny koszt OpenRouter dla wszystkich 22 teł: **~$2.77**
-(4B doc $0.92, 8B doc $0.43, 4B chunks $0.95, 8B chunks $0.48 —
-routing OpenRoutera z `--ignore-providers siliconflow`, bo
-SiliconFlow jest 4× droższy).
+Próbka mixu jak wyżej (seed=42), embedding każdego dokumentu /
+chunka / frazy — modele Qwen przez OpenRouter, modele OpenAI przez
+`api.openai.com` (ten sam skrypt, `--base-url` + `--api-key-env`) —
+potem fit ZCA w dwóch streamingowych przejściach po chunkach
+(`μ = E[x]`, `Σ = E[(x-μ)(x-μ)ᵀ]`), a potem
+`W = U · diag(1/√(S + ε)) · Uᵀ` z `SVD(Σ)`, gdzie `ε=1e-6`. Bez GPU.
+Koszty: rodziny Qwen doc+chunks **~$2.77** przez OpenRouter (4B doc
+$0.92, 8B doc $0.43, 4B chunks $0.95, 8B chunks $0.48 — routing z
+`--ignore-providers siliconflow`, bo SiliconFlow jest 4× droższy);
+rodziny OpenAI doc+chunks **~$14** przez API OpenAI (~95 M tokenów ×
+$0.02/M dla 3-small i $0.13/M dla 3-large); cztery rodziny `kw` to
+**grosze** (~0.4 M tokenów każda).
 
 Per-dokumentowy kontekst egzekwowany jest precyzyjnie na etapie
-embed: każdy doc przechodzi przez tokenizer modelu (pobierany z HF —
-ten sam `tokenizer.json` dla 4B i 8B, byte-identyczny) i jest
-obcinany do **30 000 tokenów** jeśli trzeba (~2k zapasu pod oknem
-32k Qwen3). Dla wariantu `chunks` chunker robi twardy split przed
-embed (target 512 tok), więc cap nigdy nie pyka.
+embed: każdy doc przechodzi przez tokenizer modelu — `tokenizer.json`
+Qwen3 z HF (byte-identyczny dla 4B i 8B) albo `tiktoken`
+`cl100k_base` dla modeli OpenAI — i jest obcinany do **30 000
+tokenów** dla Qwen (~2k zapasu pod oknem 32k) lub **8 191 tokenów**
+dla OpenAI (ich twardy limit inputu; obcięło 326 z 50 042 doków).
+Chunki i frazy keywordowe nie zbliżają się do żadnego z limitów.
 
-Te same chunki embedów są potem fitowane pięć razy (4B) i sześć
-razy (8B) na każdą granularność — raz na każdy wymiar MRL — przez
-**refit od zera**: slice chunka do `N` kolumn, L2-renormalizacja
-wierszowa, ponowne obliczenie μ i Σ, świeże SVD. (Nie liczymy
-pełnego `W` raz i nie slice'ujemy go — to dałoby złe statystyki.)
-Cała siatka MRL dla jednej granularności jednego modelu zajmuje
-poniżej dwóch minut na CPU po zakończeniu embed.
+Te same chunki embedów są potem fitowane raz na każdy wymiar MRL —
+przez **refit od zera**: slice chunka do `N` kolumn,
+L2-renormalizacja wierszowa, ponowne obliczenie μ i Σ, świeże SVD.
+(Nie liczymy pełnego `W` raz i nie slice'ujemy go — to dałoby złe
+statystyki.) Cała siatka MRL dla jednej granularności jednego modelu
+zajmuje poniżej dwóch minut na CPU po zakończeniu embed.
 
 Tabela diagnostyki (`top_ev_ratio_pre` / `rank_deficient_eigvals`,
 od najwyższego do najniższego wymiaru MRL):
@@ -276,30 +346,51 @@ od najwyższego do najniższego wymiaru MRL):
 Chunki są nieznacznie mniej anizotropowe niż dokumenty przy tym
 samym wymiarze (np. 86.1 vs 91.7 dla 4B mrl2560), bo 129k chunków
 próbkuje przestrzeń embedding bardziej równomiernie niż 50k całych
-dokumentów.
+dokumentów. W drugą stronę: frazy `kw` są przy natywnym wymiarze
+jeszcze bardziej anizotropowe niż dokumenty (np. 149.9 dla 8B kw
+mrl4096 vs 157.6 dla 8B doc — ale 81.5 dla 4B kw mrl2560 vs 91.7
+doc; pełna diagnostyka wszystkich 69 teł w
+[`REGISTRY.md`](REGISTRY.md)).
 
 ## Zbudować od zera (lub dopasować dla własnego modelu)
 
 Katalog `scripts/` zawiera kompletny pipeline który możesz odpalić z
-dowolnym kluczem OpenRouter i dla dowolnego modelu embeddującego
-wspieranego przez OpenRouter. Wall-time: ~1-3 h na model na
-granularność, koszt API ~$0.4-1 na model dla 50k polskich
-dokumentów / 129k chunków (~46-48 M tokenów po $0.01-0.02 / M w
-zależności od providera kierowanego przez OpenRouter).
+dowolnym kluczem OpenRouter (dowolny model embeddujący wspierany
+przez OpenRouter) albo kluczem OpenAI
+(`--base-url https://api.openai.com/v1/embeddings --api-key-env
+OPENAI_API_KEY`). Wall-time: ~0.5-3 h na model na granularność.
+Koszt API dla 50k polskich dokumentów / 129k chunków: ~$0.4-1 na
+model Qwen przez OpenRouter, ~$0.9-6.4 na model OpenAI ($0.02/M dla
+3-small, $0.13/M dla 3-large), a każda rodzina `kw` to grosze
+(~0.4 M tokenów).
 
 ```bash
 git clone https://github.com/romek-rozen/polish-whitening-backgrounds.git
 cd polish-whitening-backgrounds
 
-# 1. Zainstaluj minimalne zależności (numpy + pyarrow + datasets + requests + tokenizers + trafilatura).
+# 1. Zainstaluj minimalne zależności (numpy + pyarrow + datasets + requests + tokenizers + tiktoken + trafilatura).
 pip install -r requirements.txt
 
-# 2. Podaj swój klucz OpenRouter (https://openrouter.ai/keys).
+# 2. Podaj swój klucz / klucze.
 cp .env.example .env
-$EDITOR .env             # wklej OPENROUTER_API_KEY=sk-or-...
+$EDITOR .env             # wklej OPENROUTER_API_KEY=sk-or-... i/lub OPENAI_API_KEY=sk-...
 
-# 3. End-to-end: korpus(_chunks) → embed (4B + 8B) → fit (22 tła) → index.
+# 3. End-to-end dla rodzin Qwen: korpus(_chunks) → embed (4B + 8B) → fit → index.
 bash scripts/run_full.sh
+
+# 4. Rodziny keywordowe (wszystkie cztery modele):
+python scripts/build_corpus_keywords.py
+python scripts/embed_via_openrouter.py --model qwen/qwen3-embedding-4b \
+    --corpus data/corpus_keywords.parquet --out data/kw_corpus/
+python scripts/embed_via_openrouter.py --model text-embedding-3-small \
+    --corpus data/corpus_keywords.parquet --out data/kw_corpus/ \
+    --base-url https://api.openai.com/v1/embeddings --api-key-env OPENAI_API_KEY
+# … analogicznie qwen3-embedding-8b / text-embedding-3-large, potem:
+bash scripts/run_kw_fits.sh
+
+# 5. Rodziny OpenAI doc+chunks:
+bash scripts/run_oai_fits.sh   # po zembeddowaniu corpus.parquet i
+                               # corpus_chunks_512_64.parquet oboma modelami
 ```
 
 Co robi każdy skrypt:
@@ -308,10 +399,13 @@ Co robi każdy skrypt:
 |---|---|
 | `scripts/build_corpus.py` | Próbkuje mix polski (wiki + FineWeb-2 PL + oasst) z seed=42 i progiem 500 znaków na akapit. Zapisuje `data/corpus.parquet`. Default: brak górnego capa. |
 | `scripts/build_corpus_chunks.py` | Tnie `data/corpus.parquet` przez `lib.chunker` (512 tok / 64 tok overlap, merge sub-100-char, strip overlap fragments). Zapisuje `data/corpus_chunks.parquet` (129 181 chunków). |
-| `scripts/embed_via_openrouter.py` | Embedduje `corpus.parquet` przez OpenRouter. Wstępne, precyzyjne obcinanie po tokenach pod okno kontekstu modelu (domyślnie 30 000 tokenów, tokenizer Qwen3 pobierany z HF — zmiana przez `--max-tokens-per-doc` i `--tokenizer-repo`). Adaptacyjny batch (start 16, połowa przy 429/5xx, rośnie po seriach sukcesów). Idempotentny: resume z najwyższego istniejącego chunka. Pisze `data/chunks_<slug>/*.npy` plus per-call `cost_report_<slug>.json`. |
+| `scripts/build_corpus_keywords.py` | Wydobywa z tego samego korpusu 50 000 fraz keyword-podobnych (n-gramy 1–5 słów, filtr stopwords-pl na brzegach, df ≥ 3, stratyfikowany mix długości). Zapisuje `data/corpus_keywords.parquet`. |
+| `scripts/embed_via_openrouter.py` | Embedduje dowolny parquet korpusu przez endpoint zgodny z OpenAI `/v1/embeddings` — domyślnie OpenRouter, `api.openai.com` przez `--base-url` + `--api-key-env`. Wstępne, precyzyjne obcinanie po tokenach pod okno kontekstu modelu (tokenizer Qwen3 z HF albo tiktoken dla modeli OpenAI — zmiana przez `--max-tokens-per-doc` / `--tokenizer-repo`). Adaptacyjny batch (połowa przy 429/5xx, rośnie po seriach sukcesów). Idempotentny: resume z najwyższego istniejącego chunka. Pisze `chunks_<slug>/*.npy` plus per-call `cost_report_<slug>.json`. |
 | `scripts/fit_zca.py` | Dwa streamingowe pass-y (μ, Σ) po chunkach + SVD. Opcjonalne `--truncate-to N` obcina każdy chunk do `N` kolumn i ponownie renormalizuje przed fitem, do refitów MRL. Pisze `backgrounds/<name>/{W_A.npy, mu_A.npy, eigvals_A.npy, *.meta.json}`. |
-| `scripts/index_backgrounds.py` | Regeneruje `REGISTRY.md` + `registry.json`. Wywoływane przez `run_full.sh`. |
-| `scripts/run_full.sh` | Orchestrator: korpus → embed na każdy model → fit przy każdym wymiarze z `DIMS_<MODEL>` → index. Idempotentny — bezpieczny do ponownego uruchomienia. |
+| `scripts/index_backgrounds.py` | Regeneruje `REGISTRY.md` + `registry.json`. Wywoływane przez skrypty-runnery. |
+| `scripts/run_full.sh` | Orchestrator rodzin Qwen: korpus → embed na każdy model → fit przy każdym wymiarze z `DIMS_<MODEL>` → index. Idempotentny — bezpieczny do ponownego uruchomienia. |
+| `scripts/run_kw_fits.sh` | Fituje każde tło `kw`, którego embeddingi są kompletne pod `data/kw_corpus/` (wszystkie cztery modele) → index. Pomija częściowe embeddingi. |
+| `scripts/run_oai_fits.sh` | Fituje tła OpenAI `doc` + `chunks` z `data/chunks_<model>/` i `data/chunks_corpus/chunks_<model>/` → index. Pomija częściowe embeddingi. |
 
 `data/` jest w `.gitignore` (korpus + chunki są odtwarzalne). Tylko
 finalne artefakty `backgrounds/<name>/` trafiają do repo.
@@ -350,14 +444,14 @@ zachowaniu atrybucji. Bez gwarancji.
 
 ## Cytowanie
 
-Jeżeli korzystasz z tych teł w publikacji, prosimy zacytować
-Qwen3-Embedding oraz odesłać do tego repo, żeby inni mogli też je
-znaleźć:
+Jeżeli korzystasz z tych teł w publikacji, prosimy zacytować model
+embeddingowy, którego używasz, oraz odesłać do tego repo, żeby inni
+mogli też je znaleźć:
 
 ```
 @misc{polish-whitening-backgrounds,
   author = {Rozenberger, Roman},
-  title  = {Polish ZCA whitening backgrounds for Qwen3-Embedding (4B & 8B)},
+  title  = {Polish ZCA whitening backgrounds for Qwen3-Embedding and OpenAI text-embedding-3},
   year   = {2026},
   url    = {https://github.com/romek-rozen/polish-whitening-backgrounds}
 }
