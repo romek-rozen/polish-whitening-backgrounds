@@ -20,8 +20,8 @@ these modules together — never re-implement the same logic inline.
 
 The top-level scripts (`embed_via_openrouter.py`, `fit_zca.py`) are
 still partly inlined.  The rewrite to thin wrappers is a follow-up;
-all 22 backgrounds (4b/8b × doc/chunks × 5–6 MRL dims) have already
-been shipped against the current module layout.
+all 80 backgrounds (4 models × doc/chunks/segments/kw × the MRL
+grids) have already been shipped against the current module layout.
 
 ## Rules of the road
 

@@ -22,9 +22,9 @@ repo root looks for exactly these names.
 <model>_<corpus>_<granularity>_mrl<dim>/
    │       │          │            │
    │       │          │            └─ mrl<dim>     MRL refit at dim N
-   │       │          └─ doc | chunks              embedding granularity
+   │       │          └─ doc | chunks | segments | kw   embedding granularity
    │       └─ pl_mixed50k                          language + corpus tag
-   └─ qwen3_4b | qwen3_8b                          embedding model
+   └─ qwen3_4b | qwen3_8b | te3small | te3large    embedding model
 ```
 
 Example: `qwen3_4b_pl_mixed50k_doc_mrl1024/` is the ZCA refit for
@@ -44,36 +44,43 @@ threads but the public oasst-1 dump yields only 42 Polish-tagged
 ones, so the FineWeb tier was extended by 5 000 to get back to a
 genuine 50k.
 
-Both granularities are shipped:
+Four granularities are shipped:
 
 - `_doc_` — one embedding per whole document (50 042 vectors).
 - `_chunks_` — one embedding per 512-token chunk with 64-token
   overlap, produced by `scripts/lib/chunker.py`
   (`RecursiveCharacterTextSplitter` with `merge_tiny` floor=100 chars
   + `strip_overlap_fragments`). Yields **129 181 chunks** from the
-  same 50 042 docs. Not a drop-in replacement for `_doc_` — the
-  background's fit-time granularity MUST match your index-time
-  granularity; see
-  [`../GOTCHAS.md`](../GOTCHAS.md#1-background-granularity-must-match-index-granularity).
+  same 50 042 docs.
+- `_segments_` — one embedding per article **section** (up to 1024
+  tokens, no overlap), produced by `scripts/lib/segmenter.py`
+  (heading-first separators, `merge_tiny` floor=300 chars). Yields
+  **73 692 segments**; Qwen models only. Built for internal-linking
+  retrieval (segment→segment, targets represented by their segments).
+- `_kw_` — one embedding per short keyword-like phrase (1–5 words),
+  50 000 phrases mined by `scripts/build_corpus_keywords.py`. For
+  keyword grouping / clustering.
+
+None is a drop-in replacement for another — the background's
+fit-time granularity MUST match your index-time granularity; see
+[`../GOTCHAS.md`](../GOTCHAS.md#1-background-granularity-must-match-index-granularity).
 
 ## Picking the right one for your pipeline
 
-All 22 variants are shipped. Pick `_doc_` if you whiten whole
-documents, `_chunks_` if you whiten 512-token chunks.
+All 80 variants are shipped. Pick `_doc_` if you whiten whole
+documents, `_chunks_` if you whiten 512-token chunks, `_segments_`
+if you whiten article sections (internal linking), `_kw_` if you
+whiten short keyword phrases.
 
-| Your model | Your effective dim (after MRL slice + L2 renorm) | Use |
-|---|---:|---|
-| Qwen3-Embedding-4B | 2560 (native) | `qwen3_4b_pl_mixed50k_{doc,chunks}_mrl2560/` |
-| Qwen3-Embedding-4B | 1536 | `qwen3_4b_pl_mixed50k_{doc,chunks}_mrl1536/` |
-| Qwen3-Embedding-4B | 1024 | `qwen3_4b_pl_mixed50k_{doc,chunks}_mrl1024/` |
-| Qwen3-Embedding-4B | 768 | `qwen3_4b_pl_mixed50k_{doc,chunks}_mrl768/` |
-| Qwen3-Embedding-4B | 512 | `qwen3_4b_pl_mixed50k_{doc,chunks}_mrl512/` |
-| Qwen3-Embedding-8B | 4096 (native) | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl4096/` |
-| Qwen3-Embedding-8B | 3072 | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl3072/` |
-| Qwen3-Embedding-8B | 2048 | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl2048/` |
-| Qwen3-Embedding-8B | 1024 | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl1024/` |
-| Qwen3-Embedding-8B | 768 | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl768/` |
-| Qwen3-Embedding-8B | 512 | `qwen3_8b_pl_mixed50k_{doc,chunks}_mrl512/` |
+| Your model | Granularities | Effective dims (after MRL slice + L2 renorm) |
+|---|---|---|
+| Qwen3-Embedding-4B | doc, chunks, segments, kw | 2560 (native), 1536, 1024, 768, 512 |
+| Qwen3-Embedding-8B | doc, chunks, segments, kw | 4096 (native), 3072, 2048, 1024, 768, 512 |
+| text-embedding-3-small | doc, chunks, kw | 1536 (native), 1024, 768, 512, 256 |
+| text-embedding-3-large | doc, chunks, kw | 3072 (native), 2048, 1536, 1024, 768, 512, 256 |
+
+Directory name pattern: `<model>_pl_mixed50k_<granularity>_mrl<dim>/`,
+e.g. `qwen3_8b_pl_mixed50k_segments_mrl1024/`.
 
 If you slice to a dim we don't ship (e.g. 256, or 2048 against 4B),
 refit yourself — see [Rebuild from scratch](../README.md#rebuild-from-scratch-or-fit-your-own-model)
@@ -89,7 +96,7 @@ thresholds:
 - `rank_deficient_eigvals` (count of eigvals < 1e-7) should be
   **well under ~100**. Anything higher means SVD found an
   unhealthy low-rank structure — usually a corpus problem.
-  Shipped backgrounds top out at 24 (4096-dim 8B chunks).
+  Shipped backgrounds top out at 59 (4096-dim 8B kw).
 - `top_ev_ratio_pre` is the anisotropy ratio (top eigval ÷ mean).
   Values in the **tens to low hundreds** are normal for modern
   embeddings — shipped Qwen3 backgrounds run 20.4 (8B chunks @512)
@@ -106,10 +113,11 @@ thresholds:
 - The corpus parquet itself. Reproducible via `scripts/build_corpus.py`;
   the fingerprint in every meta.json pins which corpus the
   background saw.
-- Backgrounds for models other than Qwen3-Embedding-4B and -8B.
-  The pipeline is generic — extend
-  [`scripts/lib/tokenizer.OPENROUTER_TO_HF_TOKENIZER`](../scripts/lib/tokenizer.py)
-  with the model's HF repo id and re-run.
+- Backgrounds for models other than the four shipped (Qwen3-Embedding
+  4B/8B, text-embedding-3 small/large). The pipeline is generic —
+  extend the model↔tokenizer mappings in
+  [`scripts/lib/tokenizer.py`](../scripts/lib/tokenizer.py)
+  and re-run.
 
 See [`../REGISTRY.md`](../REGISTRY.md) for the live table of
 backgrounds available right now (autogenerated by

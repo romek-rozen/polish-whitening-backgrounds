@@ -85,6 +85,9 @@ flakes, and refactors: you can stop it anywhere and re-launch
 | `build_corpus.py` | HF dataset streaming (wiki + FineWeb-2 PL + oasst), per-source filters, `MIN_DOC_CHARS=500` floor, manifest write, corpus fingerprint. |
 | `build_corpus_chunks.py` | v3 only: read `data/corpus.parquet`, sentence-aware chunk via `lib/chunker.py`, write `data/corpus_chunks_<size>_<overlap>.parquet`.  Output schema is a superset of `corpus.parquet` (adds `doc_sha`, `chunk_idx`) so the rest of the pipeline runs unchanged. |
 | `build_corpus_segments.py` | segments only: read `data/corpus.parquet`, section-level split via `lib/segmenter.py` (1024-token cap, no overlap, heading-first separators), write `data/corpus_segments_<size>.parquet`.  Same schema contract as the chunks parquet (adds `doc_sha`, `segment_idx`). |
+| `build_corpus_keywords.py` | kw only: mine 50 000 keyword-like phrases (1–5-word n-grams, stopwords-pl edge filter, df ≥ 3, stratified word-count mix) → `data/corpus_keywords.parquet`. |
+| `run_kw_fits.sh` | Fit every `kw` background whose embeddings are complete under `data/kw_corpus/` (all four models) → index.  Refuses partial embeds. |
+| `run_oai_fits.sh` | Fit the OpenAI `doc` + `chunks` backgrounds from `data/chunks_<model>/` and `data/chunks_corpus/chunks_<model>/` → index.  Refuses partial embeds. |
 | `embed_via_openrouter.py` | The adaptive-batch retry loop. Imports HTTP, tokenizer, persistence from `lib/`. |
 | `fit_zca.py` | Argparse + `lib.zca.fit` + `lib.zca.write_meta`. ~110 lines. |
 | `index_backgrounds.py` | Walk `backgrounds/`, read every `*.meta.json`, write `REGISTRY.md` + `registry.json`. Deterministic — depends only on what's on disk. |

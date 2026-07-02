@@ -64,9 +64,9 @@ python scripts/index_backgrounds.py # regenerate REGISTRY.md
 ```
 
 The `--chunks` dir must match the granularity baked into `<new-name>`
-(doc vs chunks).  Whitening doc-level embeddings with a
-chunk-level background (or vice versa) is the §1 gotcha — fit and
-inference granularity must match.
+(doc / chunks / segments / kw).  Whitening doc-level embeddings with a
+chunk-level background (or any other cross-granularity mix) is the
+§1 gotcha — fit and inference granularity must match.
 
 …then commit `backgrounds/<new-name>/` + the regenerated
 `REGISTRY.md` + `registry.json` as one atomic change.
