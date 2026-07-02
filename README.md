@@ -368,7 +368,9 @@ streaming passes over the embedding chunks (`μ = E[x]`,
 `Σ = E[(x-μ)(x-μ)ᵀ]`), then `W = U · diag(1/√(S + ε)) · Uᵀ` from
 `SVD(Σ)` with `ε=1e-6`. No GPU needed. Spend: the Qwen doc+chunks
 families cost **~$2.77** via OpenRouter (4B doc $0.92 / 8B doc $0.46 /
-4B chunks $0.95 / 8B chunks $0.48); the OpenAI doc+chunks families
+4B chunks $0.95 / 8B chunks $0.48); the Qwen `segments` families
+**~$1.39** (4B $0.93 / 8B $0.46 — 46.3 M tokens each); the OpenAI
+doc+chunks families
 **~$14** via the OpenAI API (~95 M tokens × $0.02/M for 3-small and
 $0.13/M for 3-large); the four `kw` families are **pennies** (~0.4 M
 tokens each).

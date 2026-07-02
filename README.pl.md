@@ -380,7 +380,8 @@ potem fit ZCA w dwóch streamingowych przejściach po chunkach
 Koszty: rodziny Qwen doc+chunks **~$2.77** przez OpenRouter (4B doc
 $0.92, 8B doc $0.43, 4B chunks $0.95, 8B chunks $0.48 — routing z
 `--ignore-providers siliconflow`, bo SiliconFlow jest 4× droższy);
-rodziny OpenAI doc+chunks **~$14** przez API OpenAI (~95 M tokenów ×
+rodziny Qwen `segments` **~$1.39** (4B $0.93, 8B $0.46 — po 46.3 M
+tokenów); rodziny OpenAI doc+chunks **~$14** przez API OpenAI (~95 M tokenów ×
 $0.02/M dla 3-small i $0.13/M dla 3-large); cztery rodziny `kw` to
 **grosze** (~0.4 M tokenów każda).
 

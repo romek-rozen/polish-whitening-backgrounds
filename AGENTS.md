@@ -27,25 +27,30 @@ user's main project, not this one.
 
 ## Current state (2026-07-02)
 
-**Shipped on GitHub `main`** (69 backgrounds, COMPLETE):
+**Shipped on GitHub `main`** (80 backgrounds, COMPLETE):
 
 | Background dirs | Dim range | Status |
 |---|---:|---|
-| `qwen3_4b_pl_mixed50k_{doc,chunks,kw}_mrl{2560,1536,1024,768,512}/` | 2560…512 | shipped |
-| `qwen3_8b_pl_mixed50k_{doc,chunks,kw}_mrl{4096,3072,2048,1024,768,512}/` | 4096…512 | shipped |
+| `qwen3_4b_pl_mixed50k_{doc,chunks,segments,kw}_mrl{2560,1536,1024,768,512}/` | 2560…512 | shipped |
+| `qwen3_8b_pl_mixed50k_{doc,chunks,segments,kw}_mrl{4096,3072,2048,1024,768,512}/` | 4096…512 | shipped |
 | `te3small_pl_mixed50k_{doc,chunks,kw}_mrl{1536,1024,768,512,256}/` | 1536…256 | shipped |
 | `te3large_pl_mixed50k_{doc,chunks,kw}_mrl{3072,2048,1536,1024,768,512,256}/` | 3072…256 | shipped |
 
 Spend: Qwen doc+chunks ~$2.77 via OpenRouter (4b doc $0.92, 8b doc
-$0.46, 4b chunks $0.95, 8b chunks $0.48); OpenAI doc+chunks ~$14 via
+$0.46, 4b chunks $0.95, 8b chunks $0.48); Qwen segments ~$1.39
+(4b $0.93, 8b $0.46 — 46.3 M tokens each); OpenAI doc+chunks ~$14 via
 api.openai.com (~95 M tokens; 3-small $0.02/M, 3-large $0.13/M); the
 four `kw` families cost pennies (~0.4 M tokens each). Orchestrators:
 `scripts/run_full.sh` (Qwen doc; chunks with
-`NAME_PREFIX=pl_mixed50k_chunks` + `CORPUS=data/corpus_chunks_512_64.parquet`),
+`NAME_PREFIX=pl_mixed50k_chunks` + `CORPUS=data/corpus_chunks_512_64.parquet`;
+segments with `NAME_PREFIX=pl_mixed50k_segments` +
+`CORPUS=data/corpus_segments_1024.parquet` + `OUT_ROOT=data/segments_corpus`),
 `scripts/run_kw_fits.sh` (all kw fits), `scripts/run_oai_fits.sh`
 (OpenAI doc+chunks fits). The `kw` granularity exists for keyword
 grouping / clustering (Google Ads use case) — whole-doc backgrounds
-misfit on 1–5-word phrases.
+misfit on 1–5-word phrases.  The `segments` granularity (Qwen models
+only) exists for internal-linking retrieval — segment→segment matching
+with target docs represented by their own segments.
 
 **Retired** (still in git history, removed from `main` working tree):
 - `polish_mixed_50k_v1{,_mrl1024,_mrl1536}/`
