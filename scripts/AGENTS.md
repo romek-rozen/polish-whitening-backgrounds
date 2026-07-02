@@ -23,14 +23,25 @@ build_corpus.py  →  data/corpus.parquet
                          │       ▼
                          │     embed_via_openrouter.py
                          │
-                         └─ v3 (chunk-level, shipped)
+                         ├─ v3 (chunk-level, shipped)
+                         │       │
+                         │       ▼
+                         │  build_corpus_chunks.py
+                         │       │   data/corpus_chunks_<S>_<O>.parquet
+                         │       ▼
+                         │  embed_via_openrouter.py  (same script,
+                         │       │   different --corpus)
+                         │       ▼
+                         │       …
+                         │
+                         └─ segments (section-level, shipped)
                                  │
                                  ▼
-                            build_corpus_chunks.py
-                                 │   data/corpus_chunks_<S>_<O>.parquet
+                            build_corpus_segments.py
+                                 │   data/corpus_segments_<size>.parquet
                                  ▼
-                            embed_via_openrouter.py  (same script,
-                                 │   different --corpus)
+                            embed_via_openrouter.py  (--corpus +
+                                 │   --out data/segments_corpus)
                                  ▼
                                  …
 
@@ -73,10 +84,11 @@ flakes, and refactors: you can stop it anywhere and re-launch
 |---|---|
 | `build_corpus.py` | HF dataset streaming (wiki + FineWeb-2 PL + oasst), per-source filters, `MIN_DOC_CHARS=500` floor, manifest write, corpus fingerprint. |
 | `build_corpus_chunks.py` | v3 only: read `data/corpus.parquet`, sentence-aware chunk via `lib/chunker.py`, write `data/corpus_chunks_<size>_<overlap>.parquet`.  Output schema is a superset of `corpus.parquet` (adds `doc_sha`, `chunk_idx`) so the rest of the pipeline runs unchanged. |
+| `build_corpus_segments.py` | segments only: read `data/corpus.parquet`, section-level split via `lib/segmenter.py` (1024-token cap, no overlap, heading-first separators), write `data/corpus_segments_<size>.parquet`.  Same schema contract as the chunks parquet (adds `doc_sha`, `segment_idx`). |
 | `embed_via_openrouter.py` | The adaptive-batch retry loop. Imports HTTP, tokenizer, persistence from `lib/`. |
 | `fit_zca.py` | Argparse + `lib.zca.fit` + `lib.zca.write_meta`. ~110 lines. |
 | `index_backgrounds.py` | Walk `backgrounds/`, read every `*.meta.json`, write `REGISTRY.md` + `registry.json`. Deterministic — depends only on what's on disk. |
-| `run_full.sh` | Orchestrator: `.env` load, defaults (`MODELS`, `NAME_PREFIX`, `DIMS_<MODEL>`, `PROVIDER_ORDER`), loops embed + N×fit per model, final index. |
+| `run_full.sh` | Orchestrator: `.env` load, defaults (`MODELS`, `NAME_PREFIX`, `CORPUS`, `OUT_ROOT`, `DIMS_<MODEL>`, `PROVIDER_ORDER`), loops embed + N×fit per model, final index.  For derived corpora (chunks / segments) set `CORPUS` + a dedicated `OUT_ROOT` — a hard guard refuses `OUT_ROOT=data` with a non-default `CORPUS` (it would resume from the doc-level embeddings and poison Σ). |
 
 ## Conventions
 
@@ -137,6 +149,13 @@ DIMS_4B="1024" MODELS="qwen/qwen3-embedding-4b" bash scripts/run_full.sh
 
 # Provider routing: skip siliconflow (~4× more expensive than the cheapest).
 PROVIDER_ORDER="--ignore-providers siliconflow" bash scripts/run_full.sh
+
+# Segments granularity end-to-end (one model): build the derived
+# corpus, then run the orchestrator against it.
+python scripts/build_corpus_segments.py
+CORPUS=data/corpus_segments_1024.parquet OUT_ROOT=data/segments_corpus \
+  NAME_PREFIX=pl_mixed50k_segments MODELS="qwen/qwen3-embedding-4b" \
+  bash scripts/run_full.sh
 
 # Re-index after manually placing artefacts in backgrounds/.
 python scripts/index_backgrounds.py

@@ -69,6 +69,9 @@ Replaced because: (a) the v1 mix used noisier mC4 + sentence-only KLEJ;
 - `data/corpus_keywords.parquet` — 50 000 keyword-like phrases mined
   by `build_corpus_keywords.py` (needs `data/stopwords-pl.txt`,
   downloaded from stopwords-iso/stopwords-pl).  Used for the `kw` fits.
+- `data/corpus_segments_1024.parquet` — 73 692 section-level segments
+  from `lib.segmenter` (1024-token cap, no overlap, merge_tiny
+  floor=300 chars).  Used for the shipped `segments` fits.
 - `data/chunks_qwen_qwen3-embedding-{4b,8b}/`,
   `data/chunks_text-embedding-3-{small,large}/` — doc-level embedding
   output of the embed step.  Resumable; up to ~700 MB each.
@@ -76,6 +79,8 @@ Replaced because: (a) the v1 mix used noisier mC4 + sentence-only KLEJ;
   (129 181 rows each, all four models).
 - `data/kw_corpus/chunks_<model>/` — keyword-level embedding output
   (50 000 rows each, all four models).
+- `data/segments_corpus/chunks_<model>/` — segment-level embedding
+  output (73 692 rows each, both Qwen models).
 
 ## Naming convention
 
@@ -83,7 +88,7 @@ Replaced because: (a) the v1 mix used noisier mC4 + sentence-only KLEJ;
 <model>_<corpus>_<granularity>_mrl<dim>/
    │       │          │            │
    │       │          │            └─ mrl<dim>     MRL refit at dim N
-   │       │          └─ doc | chunks | kw         embedding granularity
+   │       │          └─ doc | chunks | segments | kw   embedding granularity
    │       └─ pl_mixed50k                          language + corpus tag
    └─ qwen3_4b | qwen3_8b | te3small | te3large    embedding model
 ```
@@ -95,6 +100,10 @@ OpenAI `text-embedding-3-small` / `-large`.
 - `_doc_` — one embedding per whole document.
 - `_chunks_` — one embedding per ~512-token chunk with 64-token
   overlap, produced by `scripts/lib/chunker.py`.
+- `_segments_` — one embedding per article **section** (up to 1024
+  tokens, no overlap), produced by `scripts/lib/segmenter.py`.
+  Built for internal linking: segment→segment matching with targets
+  aggregated per doc (see GOTCHAS.md §1).
 - `_kw_` — one embedding per keyword-like phrase (1–5 words), mined
   by `scripts/build_corpus_keywords.py`.
 
@@ -108,7 +117,9 @@ background — see [`GOTCHAS.md`](GOTCHAS.md) §1.
 last segment of the OpenRouter id with `-` → `_` (so
 `qwen/qwen3-embedding-4b` → `qwen3_4b`).  Default `NAME_PREFIX` is
 `pl_mixed50k_doc`; for chunk fits set
-`NAME_PREFIX=pl_mixed50k_chunks` before launching.
+`NAME_PREFIX=pl_mixed50k_chunks` before launching, for segment fits
+`NAME_PREFIX=pl_mixed50k_segments` (plus `CORPUS` + `OUT_ROOT`, see
+below).
 
 ## Pipeline shape
 
@@ -125,7 +136,13 @@ producing `data/corpus_chunks_512_64.parquet` which the embed step
 then consumes via `--corpus` instead of `corpus.parquet`.  For
 keyword-level fits the analogue is `build_corpus_keywords.py` →
 `data/corpus_keywords.parquet` (embed with `--out data/kw_corpus/`),
-then `run_kw_fits.sh`.
+then `run_kw_fits.sh`.  For segment-level fits:
+`build_corpus_segments.py` → `data/corpus_segments_1024.parquet`,
+then `run_full.sh` with `CORPUS=data/corpus_segments_1024.parquet
+OUT_ROOT=data/segments_corpus NAME_PREFIX=pl_mixed50k_segments` —
+`run_full.sh` hard-refuses a derived `CORPUS` with the default
+`OUT_ROOT=data` (it would resume from the doc-level embeddings and
+poison Σ).
 
 OpenAI models run through the **same** embed script against
 `api.openai.com`: add `--base-url https://api.openai.com/v1/embeddings

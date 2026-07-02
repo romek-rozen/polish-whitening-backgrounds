@@ -13,12 +13,17 @@ embeddingów i ZCA SVD — klonujesz, ładujesz, używasz.
 
 Licencja: [CC-BY-4.0](LICENSE)
 
-> **Status (2026-07-02):** **69 teł w repo** — cztery modele × do
-> trzech granularności × pełna siatka MRL/dimensions. Korpus to
+> **Status (2026-07-02):** **80 teł w repo** — cztery modele × do
+> czterech granularności × pełna siatka MRL/dimensions. Korpus to
 > `pl_mixed50k` — 22 500 Wikipedia + 27 500 FineWeb-2 PL + 42 wątki
 > oasst = **50 042 dokumentów** (akapity ≥500 znaków, ~46 M tokenów).
 > Granularność `chunks` to 129 181 chunków po 512 tokenów z
-> 64-tokenowym overlapem (`lib.chunker`). Granularność `kw` to
+> 64-tokenowym overlapem (`lib.chunker`). Granularność `segments`
+> tnie te same dokumenty na **73 692 sekcje artykułów** po maksymalnie
+> 1024 tokeny, **bez overlapu** (`lib.segmenter`) — fitowana pod
+> retrieval do **linkowania wewnętrznego**, gdzie dopasowujesz sekcję
+> artykułu A do sekcji kandydujących artykułów docelowych.
+> Granularność `kw` to
 > **50 000 polskich fraz keyword-podobnych** (1–5 słów) wydobytych z
 > tego samego korpusu — fitowana pod **grupowanie / klastrowanie
 > krótkich fraz wyszukiwania** (np. listy słów kluczowych Google
@@ -26,8 +31,8 @@ Licencja: [CC-BY-4.0](LICENSE)
 >
 > | Model | Granularności | Refity MRL |
 > |---|---|---|
-> | Qwen3-Embedding-4B | `doc`, `chunks`, `kw` | `qwen3_4b_pl_mixed50k_{doc,chunks,kw}_mrl{2560, 1536, 1024, 768, 512}` |
-> | Qwen3-Embedding-8B | `doc`, `chunks`, `kw` | `qwen3_8b_pl_mixed50k_{doc,chunks,kw}_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+> | Qwen3-Embedding-4B | `doc`, `chunks`, `segments`, `kw` | `qwen3_4b_pl_mixed50k_{doc,chunks,segments,kw}_mrl{2560, 1536, 1024, 768, 512}` |
+> | Qwen3-Embedding-8B | `doc`, `chunks`, `segments`, `kw` | `qwen3_8b_pl_mixed50k_{doc,chunks,segments,kw}_mrl{4096, 3072, 2048, 1024, 768, 512}` |
 > | text-embedding-3-small | `doc`, `chunks`, `kw` | `te3small_pl_mixed50k_{doc,chunks,kw}_mrl{1536, 1024, 768, 512, 256}` |
 > | text-embedding-3-large | `doc`, `chunks`, `kw` | `te3large_pl_mixed50k_{doc,chunks,kw}_mrl{3072, 2048, 1536, 1024, 768, 512, 256}` |
 >
@@ -40,8 +45,9 @@ Licencja: [CC-BY-4.0](LICENSE)
 > ⚠️ **Granularność ma znaczenie.** Warianty `doc` są fitowane na
 > **całych dokumentach** (jeden embedding na doc z FineWeb-2 / wiki
 > / oasst); warianty `chunks` — na 129 181 chunkach po 512 tokenów
-> z 64-tokenowym overlapem; warianty `kw` — na 50 000 krótkich fraz
-> (1–5 słów). Dopasuj granularność tła do granularności tego, co
+> z 64-tokenowym overlapem; warianty `segments` — na sekcjach
+> artykułów (≤1024 tokeny, bez overlapu); warianty `kw` — na 50 000
+> krótkich fraz (1–5 słów). Dopasuj granularność tła do granularności tego, co
 > rzeczywiście trzymasz w indeksie / klastrujesz. Dlaczego mieszanie
 > granularności po cichu psuje whitening:
 > [GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity).
@@ -95,9 +101,9 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
-# Zwraca 69 nazw — 4 modele × {doc, chunks, kw} × siatka MRL, np.:
-# ['qwen3_4b_pl_mixed50k_doc_mrl2560',  … , 'qwen3_4b_pl_mixed50k_kw_mrl512',
-#  'qwen3_8b_pl_mixed50k_doc_mrl4096',  … , 'qwen3_8b_pl_mixed50k_kw_mrl512',
+# Zwraca 80 nazw — 4 modele × {doc, chunks, segments, kw} × siatka MRL, np.:
+# ['qwen3_4b_pl_mixed50k_doc_mrl2560',  … , 'qwen3_4b_pl_mixed50k_segments_mrl512',
+#  'qwen3_8b_pl_mixed50k_doc_mrl4096',  … , 'qwen3_8b_pl_mixed50k_segments_mrl512',
 #  'te3small_pl_mixed50k_doc_mrl1536',  … , 'te3small_pl_mixed50k_kw_mrl256',
 #  'te3large_pl_mixed50k_doc_mrl3072',  … , 'te3large_pl_mixed50k_kw_mrl256']
 
@@ -158,6 +164,56 @@ Co jest ważne w tym wzorcu:
 - **Transformacja jest dokładna i bezstratna** — `bg.apply` to obrót
   + skalowanie per-oś; nie wyrzuca informacji, tylko przerozdziela
   wariancję na osie.
+
+## Linkowanie wewnętrzne (granularność `segments`)
+
+Tła `_segments_` są fitowane na **sekcjach artykułów** — do 1024
+tokenów, cięte na nagłówkach markdown / granicach akapitów, bez
+overlapu — to naturalna jednostka dla **sugestii linkowania
+wewnętrznego**: z której sekcji artykułu A powinienem linkować i do
+którego artykułu B?
+
+Kluczowe ograniczenie: obie strony cosinusa muszą być wybielone tym
+**samym** tłem. Więc nie porównuj segmentu z wektorem `_doc_` —
+reprezentuj artykuły *docelowe* również przez ich sekcje, dopasowuj
+segment→segment i agreguj per artykuł docelowy:
+
+```python
+import numpy as np
+from loader import load_background
+from scripts.lib.segmenter import make_segmenter, segment_text
+
+bg = load_background("qwen3_4b_pl_mixed50k_segments_mrl1024")
+splitter = make_segmenter("qwen/qwen3-embedding-4b")   # ten sam splitter co przy fitcie
+
+def encode_segments(article_text):
+    segs = segment_text(splitter, article_text)
+    x = embed_qwen3_4b(segs)[:, :bg.dim]              # MRL slice
+    x /= np.linalg.norm(x, axis=1, keepdims=True) + 1e-12
+    return segs, bg.apply(x)                          # (n_seg, 1024) po whiteningu
+
+# Zaindeksuj każdy kandydujący artykuł docelowy po jego segmentach (raz).
+targets = {url: encode_segments(text) for url, text in site_articles.items()}
+
+# Dla każdej sekcji edytowanego artykułu wyranguj cele linków.
+src_segs, src_vecs = encode_segments(new_article)
+for i, seg in enumerate(src_segs):
+    scores = {url: float((src_vecs[i] @ vecs.T).max())   # najlepsze dopasowanie sekcji
+              for url, (_, vecs) in targets.items()}
+    best = max(scores, key=scores.get)
+    print(f"sekcja {i} → linkuj do {best} ({scores[best]:.3f})")
+```
+
+`max()` po segmentach celu mówi Ci nie tylko *który* artykuł
+zalinkować, ale i *która jego sekcja* faktycznie pasuje — przydatne
+przy doborze anchor tekstu. Użyj średniej z top-k zamiast max, jeśli
+chcesz faworyzować cele pasujące szeroko, a nie na jednej sekcji.
+
+Jeśli Twój CMS już tnie artykuły na H2/H3, możesz podać te sekcje
+wprost zamiast `segment_text` — separatory segmentera z nagłówkiem na
+pierwszym miejscu emulują dokładnie tę strukturę (o to właśnie chodzi:
+jednostki z czasu fitu i czasu inferencji muszą się zgadzać, patrz
+[GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity)).
 
 ## Grupowanie / klastrowanie słów kluczowych (granularność `kw`)
 
@@ -262,6 +318,14 @@ sam korpus jest cięty przez `lib.chunker`
 merge sub-100-char chunków forward, strip overlap fragments) i
 daje **129 181 chunków** (~47.5 M tokenów po embed).
 
+Dla granularności `segments` te same dokumenty przechodzą przez
+`lib.segmenter`: ten sam rekurencyjny splitter, ale z separatorami z
+nagłówkami markdown na pierwszym miejscu (`\n## `, `\n### ` — na
+korpusie plain-text schodzą do pakowania akapitów po `\n\n`), capem
+1024 tokenów, **bez overlapu** i progiem `merge_tiny` 300 znaków, co
+daje **73 692 sekcje** (średnio 1.47 na dokument, wszystkie ≥300
+znaków).
+
 Dla granularności `kw` skrypt `scripts/build_corpus_keywords.py`
 wydobywa z tego samego korpusu **50 000 fraz keyword-podobnych**:
 lowercase n-gramy (1–5 słów), które nie zaczynają się ani nie kończą
@@ -289,7 +353,7 @@ Każdy `*.meta.json` zapisuje dokładne `sample_size_actual`,
 ## Struktura repo
 
 ```
-backgrounds/<name>/                   # 69 katalogów
+backgrounds/<name>/                   # 80 katalogów
   W_A.npy           # (dim, dim) float32  — zastosowanie: (x - mu) @ W
   mu_A.npy          # (dim,)    float32
   eigvals_A.npy     # (dim,)    float32   — diagnostyka, niepotrzebne przy apply
@@ -297,6 +361,8 @@ backgrounds/<name>/                   # 69 katalogów
 REGISTRY.md         # czytelny indeks, autogenerowany
 registry.json       # to samo, w wersji do parsowania
 loader.py           # loader tylko numpy (patrz Szybki start)
+lib/chunker.py      # RecursiveCharacterTextSplitter używany przez build_corpus_chunks.py
+lib/segmenter.py    # wariant sekcyjny używany przez build_corpus_segments.py
 scripts/            # pipeline korpus + embed + fit + index
 LICENSE             # CC-BY-4.0
 README.md           # wersja angielska
@@ -349,7 +415,7 @@ próbkuje przestrzeń embedding bardziej równomiernie niż 50k całych
 dokumentów. W drugą stronę: frazy `kw` są przy natywnym wymiarze
 jeszcze bardziej anizotropowe niż dokumenty (np. 149.9 dla 8B kw
 mrl4096 vs 157.6 dla 8B doc — ale 81.5 dla 4B kw mrl2560 vs 91.7
-doc; pełna diagnostyka wszystkich 69 teł w
+doc; pełna diagnostyka wszystkich 80 teł w
 [`REGISTRY.md`](REGISTRY.md)).
 
 ## Zbudować od zera (lub dopasować dla własnego modelu)
@@ -391,6 +457,11 @@ bash scripts/run_kw_fits.sh
 # 5. Rodziny OpenAI doc+chunks:
 bash scripts/run_oai_fits.sh   # po zembeddowaniu corpus.parquet i
                                # corpus_chunks_512_64.parquet oboma modelami
+
+# 6. Granularność segments (rodziny Qwen):
+python scripts/build_corpus_segments.py
+CORPUS=data/corpus_segments_1024.parquet OUT_ROOT=data/segments_corpus \
+  NAME_PREFIX=pl_mixed50k_segments bash scripts/run_full.sh
 ```
 
 Co robi każdy skrypt:
@@ -399,11 +470,12 @@ Co robi każdy skrypt:
 |---|---|
 | `scripts/build_corpus.py` | Próbkuje mix polski (wiki + FineWeb-2 PL + oasst) z seed=42 i progiem 500 znaków na akapit. Zapisuje `data/corpus.parquet`. Default: brak górnego capa. |
 | `scripts/build_corpus_chunks.py` | Tnie `data/corpus.parquet` przez `lib.chunker` (512 tok / 64 tok overlap, merge sub-100-char, strip overlap fragments). Zapisuje `data/corpus_chunks.parquet` (129 181 chunków). |
+| `scripts/build_corpus_segments.py` | Ten sam korpus → `lib.segmenter` (separatory z nagłówkiem na pierwszym miejscu, cap 1024 tokeny, bez overlapu, próg merge_tiny 300 znaków) → zapisuje `data/corpus_segments_1024.parquet` (73 692 wiersze). |
 | `scripts/build_corpus_keywords.py` | Wydobywa z tego samego korpusu 50 000 fraz keyword-podobnych (n-gramy 1–5 słów, filtr stopwords-pl na brzegach, df ≥ 3, stratyfikowany mix długości). Zapisuje `data/corpus_keywords.parquet`. |
 | `scripts/embed_via_openrouter.py` | Embedduje dowolny parquet korpusu przez endpoint zgodny z OpenAI `/v1/embeddings` — domyślnie OpenRouter, `api.openai.com` przez `--base-url` + `--api-key-env`. Wstępne, precyzyjne obcinanie po tokenach pod okno kontekstu modelu (tokenizer Qwen3 z HF albo tiktoken dla modeli OpenAI — zmiana przez `--max-tokens-per-doc` / `--tokenizer-repo`). Adaptacyjny batch (połowa przy 429/5xx, rośnie po seriach sukcesów). Idempotentny: resume z najwyższego istniejącego chunka. Pisze `chunks_<slug>/*.npy` plus per-call `cost_report_<slug>.json`. |
 | `scripts/fit_zca.py` | Dwa streamingowe pass-y (μ, Σ) po chunkach + SVD. Opcjonalne `--truncate-to N` obcina każdy chunk do `N` kolumn i ponownie renormalizuje przed fitem, do refitów MRL. Pisze `backgrounds/<name>/{W_A.npy, mu_A.npy, eigvals_A.npy, *.meta.json}`. |
 | `scripts/index_backgrounds.py` | Regeneruje `REGISTRY.md` + `registry.json`. Wywoływane przez skrypty-runnery. |
-| `scripts/run_full.sh` | Orchestrator rodzin Qwen: korpus → embed na każdy model → fit przy każdym wymiarze z `DIMS_<MODEL>` → index. Idempotentny — bezpieczny do ponownego uruchomienia. |
+| `scripts/run_full.sh` | Orchestrator rodzin Qwen: korpus → embed na każdy model → fit przy każdym wymiarze z `DIMS_<MODEL>` → index. Idempotentny — bezpieczny do ponownego uruchomienia. Dla korpusów pochodnych ustaw `CORPUS=` + dedykowany `OUT_ROOT=` (np. run segments niżej); twardy guard odmawia korpusu pochodnego z domyślnym `OUT_ROOT`. |
 | `scripts/run_kw_fits.sh` | Fituje każde tło `kw`, którego embeddingi są kompletne pod `data/kw_corpus/` (wszystkie cztery modele) → index. Pomija częściowe embeddingi. |
 | `scripts/run_oai_fits.sh` | Fituje tła OpenAI `doc` + `chunks` z `data/chunks_<model>/` i `data/chunks_corpus/chunks_<model>/` → index. Pomija częściowe embeddingi. |
 

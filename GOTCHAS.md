@@ -14,9 +14,11 @@ unit fed to the embedder at query/index time.**
 
 | Your retrieval indexes… | Use a background fitted on… |
 |---|---|
-| Full documents (one vector per doc) | Full documents |
-| Paragraphs / chunks (one vector per chunk) | Paragraphs / chunks of comparable length |
-| Sentences | Sentences |
+| Full documents (one vector per doc) | Full documents (`_doc_`) |
+| Paragraphs / chunks (one vector per chunk) | Paragraphs / chunks of comparable length (`_chunks_`) |
+| Article sections (one vector per H2/H3-scale section) | Sections (`_segments_`) |
+| Short keyword phrases (1–5 words) | Keyword phrases (`_kw_`) |
+| Sentences | Sentences (not shipped — refit) |
 
 Why it matters:
 
@@ -28,17 +30,38 @@ Why it matters:
   transform, but it stops being the *isotropisation* you wanted —
   some directions get over-corrected, others under-corrected.
 
-This repo ships **both granularities** side-by-side:
+This repo ships **four granularities** side-by-side:
 
 - `*_doc_mrl*` — one embedding per FineWeb-2 / wiki / oasst document,
   truncated to 30k tokens (50 042 docs).
 - `*_chunks_mrl*` — one embedding per 512-token chunk with 64-token
   overlap, produced by `lib.chunker` (129 181 chunks from the same
   50 042 docs).
+- `*_segments_mrl*` — one embedding per **article section** (up to
+  1024 tokens, no overlap), produced by `lib.segmenter` (73 692
+  segments from the same 50 042 docs).  Built for internal-linking
+  retrieval: match section-of-article-A → sections-of-article-B and
+  aggregate per target doc (max / top-k mean over its segments), so
+  both sides of the cosine live in the same whitened space.  Don't
+  score a `_segments_`-whitened query against `_doc_`-whitened
+  targets — different W, incomparable spaces; represent targets by
+  their segments instead.
+- `*_kw_mrl*` — one embedding per short keyword-like phrase
+  (1–5 words), for keyword grouping / clustering.
 
 Pick the variant whose granularity matches what your retriever
 indexes. Don't whiten chunk embeddings with a `_doc_` background or
 vice versa.
+
+Segments vs chunks — why both exist: chunks are fixed 512-token RAG
+windows cut mid-thought with overlap; segments are variable-length,
+topically whole sections with **no overlap**.  The segmenter
+(`lib.segmenter`) tries markdown headings (`\n## `, `\n### `) before
+paragraph boundaries, so on real markdown articles it splits exactly
+at H2/H3; on the plain-text fit corpus those separators never match
+and it falls through to paragraph packing.  Same splitter at fit and
+inference time — the §6 rule applies to segments too
+(`merge_tiny` floor is 300 chars there, not 100).
 
 ## 2. MRL backgrounds are *not* the same as truncating a full-dim background
 

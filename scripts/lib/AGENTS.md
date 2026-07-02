@@ -16,6 +16,7 @@ these modules together — never re-implement the same logic inline.
 | `chunk_store.py` | `chunk_NNNN.npy` persistence, resume detection, cost-report I/O, skip-log append. |
 | `zca.py` | Streaming μ / Σ + SVD with optional MRL truncation, meta-json writer. |
 | `chunker.py` | Sentence-aware recursive splitter for the chunks pipeline (512-token chunks, 64-token overlap, merge_tiny floor=100 chars, strip_overlap_fragments).  Sized in Qwen3 tokens via the same tokenizer.json `tokenizer.py` pulls. |
+| `segmenter.py` | Section-level splitter for the segments pipeline (internal-linking use case): 1024-token cap, **no overlap**, markdown-heading-first separators (fall through to `\n\n` on plain text), merge_tiny floor=300 chars.  Wraps `chunker.make_splitter` — only separators/size/overlap differ. |
 
 The top-level scripts (`embed_via_openrouter.py`, `fit_zca.py`) are
 still partly inlined.  The rewrite to thin wrappers is a follow-up;
