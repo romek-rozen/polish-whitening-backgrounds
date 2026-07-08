@@ -15,8 +15,9 @@ unit fed to the embedder at query/index time.**
 | Your retrieval indexes… | Use a background fitted on… |
 |---|---|
 | Full documents (one vector per doc) | Full documents (`_doc_`) |
-| Paragraphs / chunks (one vector per chunk) | Paragraphs / chunks of comparable length (`_chunks_`) |
+| Fixed-size chunks (one vector per 512-token chunk) | Chunks of comparable length (`_chunks_`) |
 | Article sections (one vector per H2/H3-scale section) | Sections (`_segments_`) |
+| Paragraphs (one vector per blank-line paragraph) | Paragraphs (`_paragraphs_`) |
 | Short keyword phrases (1–5 words) | Keyword phrases (`_kw_`) |
 | Sentences | Sentences (not shipped — refit) |
 
@@ -30,7 +31,7 @@ Why it matters:
   transform, but it stops being the *isotropisation* you wanted —
   some directions get over-corrected, others under-corrected.
 
-This repo ships **four granularities** side-by-side:
+This repo ships **five granularities** side-by-side:
 
 - `*_doc_mrl*` — one embedding per FineWeb-2 / wiki / oasst document,
   truncated to 30k tokens (50 042 docs).
@@ -46,6 +47,17 @@ This repo ships **four granularities** side-by-side:
   score a `_segments_`-whitened query against `_doc_`-whitened
   targets — different W, incomparable spaces; represent targets by
   their segments instead.
+- `*_paragraphs_mrl*` — one embedding per **blank-line paragraph**,
+  produced by `lib.paragrapher` (196 759 paragraphs from the same
+  50 042 docs): split strictly on blank lines (one paragraph = one
+  row, never merged across paragraphs), oversize >512-token paragraphs
+  subdivided at sentence boundaries, `merge_tiny(min_chars=120)` folds
+  heading-only / one-line fragments forward.  A distinct length band
+  between `kw` and `chunks` (median ~490 chars, roughly half a chunk)
+  — empirically: whitening paragraph embeddings with a `_chunks_`
+  background leaves ~7× the residual anisotropy (top_ev/mean ≈ 13.5)
+  versus a proper `_paragraphs_` background (≈ 2.0) on Qwen3-4B, so
+  this contract applies to it just as much.
 - `*_kw_mrl*` — one embedding per short keyword-like phrase
   (1–5 words), for keyword grouping / clustering.
 
