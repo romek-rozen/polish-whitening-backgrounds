@@ -1281,6 +1281,198 @@
       "size_bytes": 2365824
     },
     {
+      "name": "qwen3_8b_med_pl_chunks_mrl1024",
+      "dim": 1024,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-09T20:20:26.354227+00:00",
+      "n_fit": 150000,
+      "rank_full": 1024,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 52.624637603759766,
+      "eigvals_max": 0.029622389003634453,
+      "eigvals_min": 2.324872866665828e-06,
+      "fit_s": 1.718,
+      "embedding_cost_usd": 0.3460063999999998,
+      "embedding_tokens": 34600640,
+      "corpus_fingerprint": "8c83c0887602a9b2f7f25d84b22b149bd37c74454cf83548fafa2eb9746bd504",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_med_pl_chunks_mrl1024",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
+    },
+    {
+      "name": "qwen3_8b_med_pl_chunks_mrl2048",
+      "dim": 2048,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-09T20:20:24.226760+00:00",
+      "n_fit": 150000,
+      "rank_full": 2046,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 103.58859252929688,
+      "eigvals_max": 0.02960655465722084,
+      "eigvals_min": 3.0477408249039717e-13,
+      "fit_s": 9.09,
+      "embedding_cost_usd": 0.3460063999999998,
+      "embedding_tokens": 34600640,
+      "corpus_fingerprint": "8c83c0887602a9b2f7f25d84b22b149bd37c74454cf83548fafa2eb9746bd504",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_med_pl_chunks_mrl2048",
+      "W_shape": [
+        2048,
+        2048
+      ],
+      "mu_shape": [
+        2048
+      ],
+      "eigvals_shape": [
+        2048
+      ],
+      "size_bytes": 16793984
+    },
+    {
+      "name": "qwen3_8b_med_pl_chunks_mrl3072",
+      "dim": 3072,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-09T20:20:14.744661+00:00",
+      "n_fit": 150000,
+      "rank_full": 3051,
+      "rank_deficient": 21,
+      "top_ev_ratio_pre": 148.7247772216797,
+      "eigvals_max": 0.028269635513424873,
+      "eigvals_min": 8.012998766035104e-14,
+      "fit_s": 16.875,
+      "embedding_cost_usd": 0.3460063999999998,
+      "embedding_tokens": 34600640,
+      "corpus_fingerprint": "8c83c0887602a9b2f7f25d84b22b149bd37c74454cf83548fafa2eb9746bd504",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_med_pl_chunks_mrl3072",
+      "W_shape": [
+        3072,
+        3072
+      ],
+      "mu_shape": [
+        3072
+      ],
+      "eigvals_shape": [
+        3072
+      ],
+      "size_bytes": 37773696
+    },
+    {
+      "name": "qwen3_8b_med_pl_chunks_mrl4096",
+      "dim": 4096,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-09T20:19:57.378397+00:00",
+      "n_fit": 150000,
+      "rank_full": 3861,
+      "rank_deficient": 235,
+      "top_ev_ratio_pre": 202.79635620117188,
+      "eigvals_max": 0.029344020411372185,
+      "eigvals_min": 5.2070926915984486e-14,
+      "fit_s": 29.486,
+      "embedding_cost_usd": 0.3460063999999998,
+      "embedding_tokens": 34600640,
+      "corpus_fingerprint": "8c83c0887602a9b2f7f25d84b22b149bd37c74454cf83548fafa2eb9746bd504",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_med_pl_chunks_mrl4096",
+      "W_shape": [
+        4096,
+        4096
+      ],
+      "mu_shape": [
+        4096
+      ],
+      "eigvals_shape": [
+        4096
+      ],
+      "size_bytes": 67142016
+    },
+    {
+      "name": "qwen3_8b_med_pl_chunks_mrl512",
+      "dim": 512,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-09T20:20:28.983909+00:00",
+      "n_fit": 150000,
+      "rank_full": 512,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 27.385549545288086,
+      "eigvals_max": 0.031250663101673126,
+      "eigvals_min": 8.322992471221369e-06,
+      "fit_s": 0.735,
+      "embedding_cost_usd": 0.3460063999999998,
+      "embedding_tokens": 34600640,
+      "corpus_fingerprint": "8c83c0887602a9b2f7f25d84b22b149bd37c74454cf83548fafa2eb9746bd504",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_med_pl_chunks_mrl512",
+      "W_shape": [
+        512,
+        512
+      ],
+      "mu_shape": [
+        512
+      ],
+      "eigvals_shape": [
+        512
+      ],
+      "size_bytes": 1053056
+    },
+    {
+      "name": "qwen3_8b_med_pl_chunks_mrl768",
+      "dim": 768,
+      "embedding_model": "qwen/qwen3-embedding-8b",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-09T20:20:27.929182+00:00",
+      "n_fit": 150000,
+      "rank_full": 768,
+      "rank_deficient": null,
+      "top_ev_ratio_pre": 39.79669189453125,
+      "eigvals_max": 0.03026721626520157,
+      "eigvals_min": 4.088692094228463e-06,
+      "fit_s": 1.183,
+      "embedding_cost_usd": 0.3460063999999998,
+      "embedding_tokens": 34600640,
+      "corpus_fingerprint": "8c83c0887602a9b2f7f25d84b22b149bd37c74454cf83548fafa2eb9746bd504",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_8b_med_pl_chunks_mrl768",
+      "W_shape": [
+        768,
+        768
+      ],
+      "mu_shape": [
+        768
+      ],
+      "eigvals_shape": [
+        768
+      ],
+      "size_bytes": 2365824
+    },
+    {
       "name": "qwen3_8b_med_pl_doc_mrl1024",
       "dim": 1024,
       "embedding_model": "qwen/qwen3-embedding-8b",
