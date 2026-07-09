@@ -65,6 +65,24 @@ Pick the variant whose granularity matches what your retriever
 indexes. Don't whiten chunk embeddings with a `_doc_` background or
 vice versa.
 
+**Corpus also matters, not just granularity.** `med_pl` is a
+**separate corpus** (Polish medical / ChPL drug labels), not another
+granularity of `pl_mixed50k` — its embedding covariance is that of
+dense pharmacological prose, not the general web/wiki mix. Match both
+the corpus tag *and* the granularity to your data: use
+`qwen3_8b_med_pl_paragraphs_*` for paragraphs of medical documentation,
+not `qwen3_8b_pl_mixed50k_paragraphs_*`. The same §1 contract applies
+within `med_pl` — `_doc_` for whole-doc vectors, `_paragraphs_` for
+paragraph vectors. Two `med_pl` specifics to know: (a) the medical
+**doc corpus is ChPL-only** — the PES board-exam question set
+(170 950 ~370-char questions) is built but **deliberately held out**,
+because its length band is nowhere near ChPL's ~28 k-char documents and
+mixing it would poison the doc-level Σ exactly the way this section
+warns about; PES is reserved for a future short-text medical
+background. (b) `med_pl` currently ships **Qwen-only, `doc` +
+`paragraphs`** — there is no `med_pl` OpenAI, `segments`, `chunks`, or
+`kw` background yet, so don't reach for one.
+
 Segments vs chunks — why both exist: chunks are fixed 512-token RAG
 windows cut mid-thought with overlap; segments are variable-length,
 topically whole sections with **no overlap**.  The segmenter

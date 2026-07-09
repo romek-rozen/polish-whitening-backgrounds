@@ -13,8 +13,14 @@ embeddingów i ZCA SVD — klonujesz, ładujesz, używasz.
 
 Licencja: [CC-BY-4.0](LICENSE)
 
-> **Status (2026-07-08):** **103 tła w repo** — cztery modele × do
-> pięciu granularności × pełna siatka MRL/dimensions. Korpus to
+> **Status (2026-07-09):** **103 tła ogólne w repo**, plus zestaw
+> medyczny (`med_pl`) **wydawany przyrostowo** — na razie tylko Qwen,
+> granularności `doc` / `paragraphs` / `chunks` dochodzą model po
+> modelu (patrz [Tła medyczne](#tła-medyczne-med_pl)). Sprawdź
+> `registry.json` / `list_backgrounds()` co jest aktualnie dostępne —
+> tabela medyczna niżej to zestaw docelowy. Zestaw ogólny to cztery
+> modele × do pięciu granularności × pełna siatka MRL. Korpus
+> ogólny to
 > `pl_mixed50k` — 22 500 Wikipedia + 27 500 FineWeb-2 PL + 42 wątki
 > oasst = **50 042 dokumentów** (akapity ≥500 znaków, ~46 M tokenów).
 > Granularność `chunks` to 129 181 chunków po 512 tokenów z
@@ -107,11 +113,13 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
-# Zwraca 103 nazwy — 4 modele × {doc, chunks, segments, kw, paragraphs} × siatka MRL, np.:
+# Zwraca 103 nazwy ogólne (pl_mixed50k) + tyle teł medycznych (med_pl),
+# ile jest już wydanych — zestaw med_pl wciąż dochodzi. Np.:
 # ['qwen3_4b_pl_mixed50k_doc_mrl2560',  … , 'qwen3_4b_pl_mixed50k_segments_mrl512',
 #  'qwen3_8b_pl_mixed50k_doc_mrl4096',  … , 'qwen3_8b_pl_mixed50k_segments_mrl512',
 #  'te3small_pl_mixed50k_doc_mrl1536',  … , 'te3small_pl_mixed50k_kw_mrl256',
-#  'te3large_pl_mixed50k_doc_mrl3072',  … , 'te3large_pl_mixed50k_kw_mrl256']
+#  'te3large_pl_mixed50k_doc_mrl3072',  … , 'te3large_pl_mixed50k_kw_mrl256',
+#  'qwen3_4b_med_pl_doc_mrl2560',       … , 'qwen3_8b_med_pl_paragraphs_mrl512']
 
 # Dopasuj tło do faktycznie używanej kombinacji (model + granularność + slice wymiaru).
 bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
@@ -126,7 +134,7 @@ x_white = bg.apply(x)         # równoważne (x - bg.mu) @ bg.W
 ```
 
 Jedyną zależnością runtime jest `numpy`. Bez `git lfs`, bez
-zewnętrznych pobrań — wszystkie 103 tła leżą wprost w repo.
+zewnętrznych pobrań — wszystkie tła leżą wprost w repo (103 ogólne + med_pl przyrostowo).
 
 ## End-to-end: użycie w pipelinie retrievalu
 
@@ -260,6 +268,70 @@ bliższy swoim kontom, domieszaj własne eksporty keywordów do
 `data/corpus_keywords.parquet` i refituj
 (`bash scripts/run_kw_fits.sh` — minuty pracy, grosze kosztu).
 
+## Tła medyczne (`med_pl`)
+
+`med_pl` to **osobny korpus i osobna rodzina teł** dla profesjonalnego
+polskiego tekstu medycznego — fitowana na innym rozkładzie niż
+`pl_mixed50k`, dostarczana obok niego. Źródłem jest **ChPL**
+(*Charakterystyka Produktu Leczniczego*) scrapowana per-ID z
+oficjalnego *Rejestru Produktów Leczniczych*: **13 514 dokumentów**,
+długi profesjonalny polski tekst medyczny (wskazania, dawkowanie,
+farmakologia, przeciwwskazania), mediana ~28 k znaków, **456 M znaków
+łącznie (~114 M tokenów)**. Używaj ich zamiast teł ogólnych, gdy Twój
+indeks to charakterystyki leków, dokumentacja medyczna albo tekst
+referencyjny kliniczny — kowariancja gęstej prozy farmakologicznej to
+nie kowariancja ogólnego miksu web/wiki.
+
+To **pierwsze wydanie medyczne, wydawane przyrostowo: tylko Qwen**
+(4B + 8B), granularności `doc`, `paragraphs` i `chunks` (okna 300 tok,
+overlap 50 — ciaśniejsze niż ogólne 512/64) dochodzą model po modelu.
+Modele OpenAI oraz `segments` / `kw` **nie są jeszcze wydane** dla
+medycyny (przygotowane). **Sprawdź `registry.json` /
+`list_backgrounds()`** co jest aktualnie dostępne — tabela niżej to
+zestaw docelowy. `doc` liczone na wszystkich 13 514 dokumentach ChPL;
+`paragraphs`/`chunks` na próbce 150 000 (seed 42).
+
+| Model | Granularność (docelowo) | Wymiar → nazwa |
+|---|---|---|
+| Qwen3-Embedding-4B | doc, paragraphs, chunks | `qwen3_4b_med_pl_{doc,paragraphs,chunks}_mrl{2560, 1536, 1024, 768, 512}` |
+| Qwen3-Embedding-8B | doc, paragraphs, chunks | `qwen3_8b_med_pl_{doc,paragraphs,chunks}_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+
+Zestaw med_pl dochodzi przyrostowo (patrz `registry.json`). Użycie
+identyczne jak przy tłach ogólnych —
+ten sam `loader.py`, ten sam `bg.apply`, ta sama reguła MRL-slice:
+
+```python
+bg = load_background("qwen3_8b_med_pl_paragraphs_mrl1024")
+```
+
+Tła medyczne `doc` są fitowane na wszystkich 13 514 dokumentach ChPL.
+Tła medyczne `paragraphs` są fitowane na **losowej próbce 150 000
+akapitów** (seed 42) z 1 123 626 akapitów, na które te dokumenty się
+dzielą — do whiteningowej Σ wystarczy reprezentatywna próbka, ta sama
+zasada co przy 50k-dokumentowym korpusie ogólnym. Kontrakt
+granularności z
+[GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity)
+obowiązuje tak samo jak przy `pl_mixed50k`: wektory `doc` wybielaj tłem
+`_doc_`, wektory akapitowe tłem `_paragraphs_`.
+
+**Co jest trzymane osobno.** Drugie źródło medyczne — **PES**
+(*Państwowy Egzamin Specjalizacyjny*, 170 950 pytań egzaminacyjnych z
+[`amu-cai/medical-exams-PES-PL-2007-2024`](https://huggingface.co/datasets/amu-cai/medical-exams-PES-PL-2007-2024))
+— jest zbudowane i dostępne, ale **świadomie nie mieszane do korpusu
+dokumentowego**: jego ~370-znakowe pytania leżą w zupełnie innym paśmie
+długości niż ~28 k-znakowe dokumenty ChPL, więc zmieszanie ich
+złamałoby kontrakt granularności §1. PES jest zarezerwowany pod
+przyszłe tło medyczne krótkotekstowe / w skali `kw`. Osobno: ~787
+dokumentów ChPL to skany bez warstwy tekstowej;
+`scripts/build_med_pl_corpus_chpl_ocr.py` potrafi je zOCRować (lokalny
+Qwen3-VL albo cloud vision), ale to jest przygotowane/opcjonalne —
+skany to ~6 % zbioru i dystrybucyjnie redundantne dla kowariancji,
+więc **nie są częścią wydanego fitu**.
+
+Jeszcze niewydane, ale gotowe do odpalenia przez `scripts/run_med.sh`:
+OpenAI (`te3small` / `te3large`) medyczne oraz granularności
+`segments` / `chunks` / `kw` medyczne.
+
 ## Tła MRL
 
 Qwen3-Embedding-4B/8B to modele trenowane z Matryoshka
@@ -371,7 +443,7 @@ Każdy `*.meta.json` zapisuje dokładne `sample_size_actual`,
 ## Struktura repo
 
 ```
-backgrounds/<name>/                   # 103 katalogi
+backgrounds/<name>/                   # 103 pl_mixed50k + med_pl (dochodzi przyrostowo)
   W_A.npy           # (dim, dim) float32  — zastosowanie: (x - mu) @ W
   mu_A.npy          # (dim,)    float32
   eigvals_A.npy     # (dim,)    float32   — diagnostyka, niepotrzebne przy apply
@@ -504,6 +576,11 @@ Co robi każdy skrypt:
 | `scripts/run_paragraphs.sh` | Orchestrator granularności `paragraphs`: build/embed/fit wszystkich czterech modeli w jednym launchu z `data/corpus_paragraphs.parquet` → index. Idempotentny. |
 | `scripts/run_kw_fits.sh` | Fituje każde tło `kw`, którego embeddingi są kompletne pod `data/kw_corpus/` (wszystkie cztery modele) → index. Pomija częściowe embeddingi. |
 | `scripts/run_oai_fits.sh` | Fituje tła OpenAI `doc` + `chunks` z `data/chunks_<model>/` i `data/chunks_corpus/chunks_<model>/` → index. Pomija częściowe embeddingi. |
+| `scripts/build_med_pl_corpus_chpl.py` | Scrapuje ChPL (charakterystyki leków) per-ID z API Rejestru Produktów Leczniczych (brak bulk exportu — endpoint listy jest access-denied). Zapisuje `data/med_pl/chpl.parquet` / `chpl.jsonl` (13 514 doków). |
+| `scripts/build_med_pl_corpus_pes.py` | Buduje zestaw pytań egzaminacyjnych PES (170 950 pytań z `amu-cai/medical-exams-PES-PL-2007-2024`) → `data/med_pl/pes.parquet`. Trzymany osobno od korpusu dokumentowego (inne pasmo długości — patrz Tła medyczne). |
+| `scripts/build_med_pl_corpus_chpl_ocr.py` | Opcjonalne/przygotowane: OCR ~787 skanów ChPL bez warstwy tekstowej (lokalny Qwen3-VL albo cloud vision przez OpenRouter/OpenAI). Nie jest częścią wydanego fitu. |
+| `scripts/build_med_pl_corpus.py` | Składa korpus medyczny (tylko ChPL) → `data/corpus_med_pl.parquet`. |
+| `scripts/run_med.sh` | Orchestrator rodziny `med_pl` (build/embed/fit → index). Aktualnie wydaje Qwen `doc` + `paragraphs`; OpenAI i drobniejsze granularności są przygotowane za nim. |
 
 `data/` jest w `.gitignore` (korpus + chunki są odtwarzalne). Tylko
 finalne artefakty `backgrounds/<name>/` trafiają do repo.

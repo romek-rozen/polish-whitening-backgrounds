@@ -1,0 +1,49 @@
+{
+  "name": "qwen3_8b_med_pl_doc_mrl2048",
+  "created_at": "2026-07-09T04:11:39.436806+00:00",
+  "purpose": "ZCA whitening background for qwen/qwen3-embedding-8b on Polish text (no per-document character cap). Drop into siteFocus / any retrieval pipeline that L2-normalises Qwen3 embeddings.",
+  "language": "pl",
+  "embedding_model": "qwen/qwen3-embedding-8b",
+  "embedding_dim": 2048,
+  "max_chars_per_doc": null,
+  "embedding_endpoint": "https://openrouter.ai/api/v1/embeddings",
+  "provider": "openrouter",
+  "build_script": "scripts/fit_zca.py",
+  "diagnostics": {
+    "n_total": 13514,
+    "eps": 1e-06,
+    "dim": 2048,
+    "native_dim": 4096,
+    "mrl_truncated": true,
+    "rank_deficient_eigvals": 10,
+    "rank_full_eigvals": 2038,
+    "top_ev_ratio_pre": 131.89622497558594,
+    "eigvals_min": 1.6745026860335438e-13,
+    "eigvals_median": 2.0667514036176726e-05,
+    "eigvals_max": 0.029238825663924217,
+    "eigvals_top5": [
+      0.029238825663924217,
+      0.01434561237692833,
+      0.011631409637629986,
+      0.010886644944548607,
+      0.009783604182302952
+    ],
+    "fit_s": 1.836
+  },
+  "notes": [
+    "Apply: x_white = (x - mu) @ W where x is unit-L2 in `embedding_dim` space.",
+    "Embeddings were L2-renormalised row-wise before mean and covariance.",
+    "ZCA = U · diag(1 / sqrt(S + eps)) · U^T where Σ = U S U^T."
+  ],
+  "corpus_fingerprint_sha256": "37c4be397ef3b127a1ae8132d488a90c54eec7493348685396f83192fb830268",
+  "sample_size_actual": {
+    "chpl_rpl": 13514
+  },
+  "embedding_cost": {
+    "prompt_tokens": 166912160,
+    "total_tokens": 166912160,
+    "cost_usd": 1.6691216,
+    "n_calls": 89,
+    "n_429": 0
+  }
+}

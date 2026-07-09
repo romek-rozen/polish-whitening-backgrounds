@@ -13,8 +13,14 @@ ZCA SVD — clone, load, apply.
 
 License: [CC-BY-4.0](LICENSE)
 
-> **Status (2026-07-08):** **103 backgrounds shipped** — four models ×
-> up to five granularities × the full MRL/dimensions grid. The corpus
+> **Status (2026-07-09):** **103 general backgrounds shipped**, plus a
+> medical (`med_pl`) set **rolling out incrementally** — Qwen-only so
+> far, granularities `doc` / `paragraphs` / `chunks` landing model by
+> model (see [Medical backgrounds](#medical-backgrounds-med_pl)). Check
+> `registry.json` / `list_backgrounds()` for exactly what is live right
+> now; the medical table below is the target set. The general set uses
+> four models × up to five granularities × the full MRL/dimensions
+> grid. The general corpus
 > is `pl_mixed50k` — 22 500 Wikipedia + 27 500 FineWeb-2 PL + 42 oasst
 > threads = **50 042 docs**, full paragraphs ≥500 chars. The `chunks`
 > granularity splits the same docs into **129 181 chunks** of 512
@@ -102,11 +108,13 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
-# Returns 103 names — 4 models × {doc, chunks, segments, kw, paragraphs} × the MRL grid, e.g.:
+# Returns 103 general (pl_mixed50k) names + however many medical (med_pl)
+# are live so far — the med_pl set is still rolling out. E.g.:
 # ['qwen3_4b_pl_mixed50k_doc_mrl2560',  … , 'qwen3_4b_pl_mixed50k_segments_mrl512',
 #  'qwen3_8b_pl_mixed50k_doc_mrl4096',  … , 'qwen3_8b_pl_mixed50k_segments_mrl512',
 #  'te3small_pl_mixed50k_doc_mrl1536',  … , 'te3small_pl_mixed50k_kw_mrl256',
-#  'te3large_pl_mixed50k_doc_mrl3072',  … , 'te3large_pl_mixed50k_kw_mrl256']
+#  'te3large_pl_mixed50k_doc_mrl3072',  … , 'te3large_pl_mixed50k_kw_mrl256',
+#  'qwen3_4b_med_pl_doc_mrl2560',       … , 'qwen3_8b_med_pl_paragraphs_mrl512']
 
 # Pair the background with the model + granularity + slice dim you actually use.
 bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
@@ -254,6 +262,73 @@ the fit distribution even closer to your accounts, mix your own
 exported keywords into `data/corpus_keywords.parquet` and refit
 (`bash scripts/run_kw_fits.sh`, minutes of work, cents of spend).
 
+## Medical backgrounds (`med_pl`)
+
+`med_pl` is a **separate corpus and background family** for
+professional Polish medical text — fit on a different distribution
+than `pl_mixed50k`, shipped alongside it. The source is **ChPL**
+(*Charakterystyka Produktu Leczniczego* / drug Summary of Product
+Characteristics) scraped per-ID from the official Polish drug registry
+(*Rejestr Produktów Leczniczych*): **13 514 documents**, long-form
+professional medical Polish (indications, dosing, pharmacology,
+contraindications), median ~28 k chars, **456 M chars total (~114 M
+tokens)**. Use these instead of the general backgrounds when your index
+is drug labels, medical documentation, or clinical reference text — the
+covariance of dense pharmacological prose is not the covariance of the
+general web/wiki mix.
+
+This is the **first medical release and it is rolling out
+incrementally: Qwen-only** (4B + 8B), granularities `doc`,
+`paragraphs`, and `chunks` (300-token windows, 50-token overlap —
+tighter than the general 512/64 `chunks`) landing model-by-model. The
+OpenAI models and the `segments` / `kw` granularities are **not shipped
+yet** for medical (staged, see below). **Check `registry.json` /
+`list_backgrounds()` for exactly which `med_pl` backgrounds are live
+right now** — the table below is the target set.
+
+| Model | Granularity (target) | Dim → name |
+|---|---|---|
+| Qwen3-Embedding-4B | doc, paragraphs, chunks | `qwen3_4b_med_pl_{doc,paragraphs,chunks}_mrl{2560, 1536, 1024, 768, 512}` |
+| Qwen3-Embedding-8B | doc, paragraphs, chunks | `qwen3_8b_med_pl_{doc,paragraphs,chunks}_mrl{4096, 3072, 2048, 1024, 768, 512}` |
+
+The `doc` backgrounds are fit on all 13 514 ChPL documents; the
+`paragraphs` and `chunks` backgrounds are fit on a 150 000-row random
+sample (seed 42) of the ~1.1 M paragraphs / chunks the documents split
+into (a whitening Σ needs only a representative sample). Usage is
+identical to the general
+backgrounds — same `loader.py`, same `bg.apply`, same MRL-slice rule:
+
+```python
+bg = load_background("qwen3_8b_med_pl_paragraphs_mrl1024")
+```
+
+The `doc` medical backgrounds are fit on all 13 514 ChPL documents.
+The `paragraphs` medical backgrounds are fit on a **150 000-paragraph
+random sample** (seed 42) of the 1 123 626 paragraphs those docs split
+into — a whitening Σ only needs a representative sample, the same
+principle as the 50k-doc general corpus. The granularity contract from
+[GOTCHAS.md §1](GOTCHAS.md#1-background-granularity-must-match-index-granularity)
+applies exactly as it does to `pl_mixed50k`: whiten `doc` vectors with
+a `_doc_` background, paragraph vectors with a `_paragraphs_` one.
+
+**What's held out.** A second medical source — **PES** (*Państwowy
+Egzamin Specjalizacyjny*, 170 950 medical board-exam questions from
+[`amu-cai/medical-exams-PES-PL-2007-2024`](https://huggingface.co/datasets/amu-cai/medical-exams-PES-PL-2007-2024))
+— is built and available but **deliberately not mixed into the doc
+corpus**: its ~370-char questions sit in a completely different length
+band than ChPL's ~28 k-char documents, so mixing them would violate the
+§1 granularity contract. PES is reserved for a future short-text /
+`kw`-scale medical background. Separately, ~787 ChPL documents are
+image-only scans with no text layer;
+`scripts/build_med_pl_corpus_chpl_ocr.py` can OCR them (local Qwen3-VL
+or cloud vision), but that is staged/optional — the scans are ~6 % of
+the set and distributionally redundant for the covariance, so they are
+**not part of the shipped fit**.
+
+Not yet shipped, but ready to run via `scripts/run_med.sh`: OpenAI
+(`te3small` / `te3large`) medical, and the `segments` / `chunks` / `kw`
+medical granularities.
+
 ## MRL-truncated backgrounds
 
 Qwen3-Embedding-4B/8B are Matryoshka Representation Learning models —
@@ -360,7 +435,7 @@ diagnostic eigenvalues.
 ## Repo layout
 
 ```
-backgrounds/<name>/                   # one dir per shipped background (103 total)
+backgrounds/<name>/                   # one dir per shipped background (103 pl_mixed50k + med_pl rolling out)
   W_A.npy           # (dim, dim) float32  — apply: (x - mu) @ W
   mu_A.npy          # (dim,)    float32
   eigvals_A.npy     # (dim,)    float32   — diagnostic, not needed at apply time
@@ -478,6 +553,11 @@ What each script does:
 | `scripts/run_paragraphs.sh` | Orchestrator for the `paragraphs` granularity: build/embed/fit all four models in one launch from `data/corpus_paragraphs.parquet` → index. Idempotent. |
 | `scripts/run_kw_fits.sh` | Fit every `kw` background whose embeddings are complete under `data/kw_corpus/` (all four models) → index. Skips partial embeds. |
 | `scripts/run_oai_fits.sh` | Fit the OpenAI `doc` + `chunks` backgrounds from `data/chunks_<model>/` and `data/chunks_corpus/chunks_<model>/` → index. Skips partial embeds. |
+| `scripts/build_med_pl_corpus_chpl.py` | Scrape ChPL drug labels per-ID from the Polish drug registry API (no bulk export exists — the list endpoint is access-denied). Writes `data/med_pl/chpl.parquet` / `chpl.jsonl` (13 514 docs). |
+| `scripts/build_med_pl_corpus_pes.py` | Build the PES board-exam question set (170 950 questions from `amu-cai/medical-exams-PES-PL-2007-2024`) → `data/med_pl/pes.parquet`. Held separate from the doc corpus (different length band — see Medical backgrounds). |
+| `scripts/build_med_pl_corpus_chpl_ocr.py` | Optional/staged: OCR the ~787 image-only ChPL scans (local Qwen3-VL or cloud vision via OpenRouter/OpenAI). Not part of the shipped fit. |
+| `scripts/build_med_pl_corpus.py` | Assemble the ChPL-only medical corpus → `data/corpus_med_pl.parquet`. |
+| `scripts/run_med.sh` | Orchestrator for the `med_pl` family (build/embed/fit → index). Currently ships Qwen `doc` + `paragraphs`; OpenAI and finer granularities are staged behind it. |
 
 `data/` is git-ignored (corpus + chunks are rebuildable). Only the
 fitted `backgrounds/<name>/` artefacts ship in this repo.
