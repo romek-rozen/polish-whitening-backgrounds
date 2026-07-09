@@ -50,6 +50,11 @@ GRANS="${GRANS:-doc paragraphs}"
 # fit set — same principle as the 50k-doc general corpus.  Set empty to
 # use every row.
 PARA_SAMPLE="${PARA_SAMPLE:-150000}"
+# Medical `chunks`: tighter than the general 512/64 — default 300-token
+# windows, 50-token overlap. Also sampled (chunks explode to ~800k rows).
+CHUNK_SIZE="${CHUNK_SIZE:-300}"
+CHUNK_OVERLAP="${CHUNK_OVERLAP:-50}"
+CHUNK_SAMPLE="${CHUNK_SAMPLE:-150000}"
 OPENROUTER_URL="https://openrouter.ai/api/v1/embeddings"
 OPENAI_URL="https://api.openai.com/v1/embeddings"
 
@@ -96,8 +101,14 @@ derive_corpus() {  # $1 = gran
                     fi ;;
         segments)   out="data/corpus_med_pl_segments.parquet"
                     [ -f "$out" ] || $PY scripts/build_corpus_segments.py --corpus "$MED_CORPUS" --out "$out" >&2 ;;
-        chunks)     out="data/corpus_med_pl_chunks.parquet"
-                    [ -f "$out" ] || $PY scripts/build_corpus_chunks.py --corpus "$MED_CORPUS" --out "$out" >&2 ;;
+        chunks)     full="data/corpus_med_pl_chunks_${CHUNK_SIZE}_${CHUNK_OVERLAP}.parquet"
+                    [ -f "$full" ] || $PY scripts/build_corpus_chunks.py --corpus "$MED_CORPUS" --out "$full" --chunk-size "$CHUNK_SIZE" --chunk-overlap "$CHUNK_OVERLAP" >&2
+                    if [ -n "$CHUNK_SAMPLE" ]; then
+                        out="data/corpus_med_pl_chunks_${CHUNK_SIZE}_${CHUNK_OVERLAP}_${CHUNK_SAMPLE}.parquet"
+                        [ -f "$out" ] || $PY -c "import sys,random,pyarrow.parquet as pq; t=pq.read_table('$full'); n=t.num_rows; k=min($CHUNK_SAMPLE,n); idx=sorted(random.Random(42).sample(range(n),k)); pq.write_table(t.take(idx),'$out'); print(f'sampled {k} of {n} chunks',file=sys.stderr)" >&2
+                    else
+                        out="$full"
+                    fi ;;
         kw)         out="data/corpus_med_pl_kw.parquet"
                     [ -f "$out" ] || $PY scripts/build_corpus_keywords.py --corpus "$MED_CORPUS" --out "$out" >&2 ;;
         *) echo "unknown gran $gran" >&2; return 2 ;;
