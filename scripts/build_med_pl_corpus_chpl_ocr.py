@@ -63,11 +63,10 @@ MIN_DOC_CHARS = 400
 DPI = 150
 
 OCR_PROMPT = (
-    "Przepisz dokładnie cały tekst widoczny na tym obrazie strony "
-    "dokumentu medycznego (Charakterystyka Produktu Leczniczego). "
-    "Zachowaj kolejność, akapity i pozycje list. Nie dodawaj żadnych "
-    "komentarzy, nagłówków ani wyjaśnień od siebie — zwróć wyłącznie "
-    "tekst przepisany z obrazu."
+    "Convert this page of a Polish medical document (Charakterystyka "
+    "Produktu Leczniczego) to clean Markdown. Transcribe ALL text exactly, "
+    "preserving headings, numbered sections, lists and tables. Output only "
+    "the Markdown, no commentary."
 )
 
 logger = logging.getLogger("build_med_pl_corpus_chpl_ocr")
@@ -143,6 +142,7 @@ def _ocr_page(session: requests.Session, url: str, model: str,
     payload = {
         "model": model,
         "temperature": 0.0,
+        "max_tokens": 4096,
         "messages": [{
             "role": "user",
             "content": [

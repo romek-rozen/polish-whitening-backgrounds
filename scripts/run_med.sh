@@ -39,8 +39,8 @@ if [ -f .env ]; then
     set -a; . ./.env; set +a
 fi
 
-MED_CORPUS="data/corpus_med_pl.parquet"
-OUT_BASE="data/med_corpus"
+MED_CORPUS="${MED_CORPUS:-data/corpus_med_pl.parquet}"
+OUT_BASE="${OUT_BASE:-data/med_corpus}"
 START_BATCH="${START_BATCH:-16}"
 MAX_BATCH="${MAX_BATCH:-32}"
 PROVIDER_ORDER="${PROVIDER_ORDER:-}"
