@@ -25,15 +25,13 @@ this repo's `data/` (git-ignored). Never read or write to
 or any of its `data/` / `results/` / `models/` subtrees — that's the
 user's main project, not this one.
 
-## Current state (2026-07-09)
+## Current state (2026-07-15)
 
-**Shipped on GitHub `main`**: 103 general (`pl_mixed50k`, COMPLETE) plus
-a medical (`med_pl`) set **rolling out incrementally** (Qwen-only:
-`doc` / `paragraphs` / `chunks`, landing model-by-model). The med_pl
-table below is the target; `registry.json` is the source of truth for
-what is actually committed right now.
+**Shipped on GitHub `main`**: **160 backgrounds** — 103 general
+(`pl_mixed50k`) + 57 medical (`med_pl`). `registry.json` is the source
+of truth for what is actually committed right now.
 
-General corpus `pl_mixed50k` (103, COMPLETE):
+General corpus `pl_mixed50k` (103):
 
 | Background dirs | Dim range | Status |
 |---|---:|---|
@@ -42,46 +40,57 @@ General corpus `pl_mixed50k` (103, COMPLETE):
 | `te3small_pl_mixed50k_{doc,chunks,kw,paragraphs}_mrl{1536,1024,768,512,256}/` | 1536…256 | shipped |
 | `te3large_pl_mixed50k_{doc,chunks,kw,paragraphs}_mrl{3072,2048,1536,1024,768,512,256}/` | 3072…256 | shipped |
 
-Medical corpus `med_pl` (rolling out — Qwen-only; `doc` fit on all
-13 514 ChPL docs, `paragraphs`/`chunks` on a 150k sample; target set):
+Medical corpus `med_pl` (57; `doc`/`paragraphs`/`chunks` all fit on the
+same 14 392-doc OCR-inclusive corpus, `paragraphs`/`chunks` on a 150k
+sample):
 
 | Background dirs | Dim range | Status |
 |---|---:|---|
-| `qwen3_4b_med_pl_{doc,paragraphs}_mrl{2560,1536,1024,768,512}/` | 2560…512 | shipped (10) |
-| `qwen3_8b_med_pl_{doc,paragraphs}_mrl{4096,3072,2048,1024,768,512}/` | 4096…512 | shipped (12) |
+| `qwen3_4b_med_pl_{doc,paragraphs,chunks}_mrl{2560,1536,1024,768,512}/` | 2560…512 | shipped (15) |
+| `qwen3_8b_med_pl_{doc,paragraphs,chunks}_mrl{4096,3072,2048,1024,768,512}/` | 4096…512 | shipped (18) |
+| `te3small_med_pl_{paragraphs,chunks}_mrl{1536,1024,768,512,256}/` | 1536…256 | shipped (10) |
+| `te3large_med_pl_{paragraphs,chunks}_mrl{3072,2048,1536,1024,768,512,256}/` | 3072…256 | shipped (14) |
+
+No **te3 `doc`**: text-embedding-3 caps input at 8 191 tokens and 60 %
+of the ChPL docs exceed it (median ~10.6 k tokens), so a te3 `doc` fit
+would whiten mostly truncated document heads — Qwen (longer context)
+ships `doc`, te3 ships only `paragraphs` + `chunks`.
 
 `med_pl` is a **separate corpus** (drug labels), not a granularity of
 `pl_mixed50k`. Source = **ChPL** (*Charakterystyka Produktu
 Leczniczego*) scraped per-ID from the Polish drug registry (*Rejestr
-Produktów Leczniczych*): 13 514 docs, median ~28 k chars, 456 M chars
-(~114 M tokens). `doc` fits on all 13 514 docs; `paragraphs` fits on a
-150 000-paragraph random sample (seed 42) of the 1 123 626 paragraphs
-they split into. **Not yet shipped** (staged behind `scripts/run_med.sh`):
-OpenAI medical (`te3small`/`te3large`) and the `segments`/`chunks`/`kw`
-medical granularities. A second source, **PES** (170 950 board-exam
-questions from HF `amu-cai/medical-exams-PES-PL-2007-2024`), is built
-but deliberately held out of the doc corpus (~370-char questions are a
-different length band — would violate the §1 granularity contract);
-reserved for a future short-text medical background. ~787 ChPL docs are
-image-only scans; `build_med_pl_corpus_chpl_ocr.py` can OCR them but
-they are ~6 % and distributionally redundant, so not in the shipped fit.
+Produktów Leczniczych*): **14 392 docs** (13 514 scraped + 878 OCR'd
+image-only scans, merged), median ~27 k chars, 475 M chars. `doc` fits
+on all 14 392 docs; `paragraphs`/`chunks` fit on a 150 000-row random
+sample (seed 42) of the ~1.18 M paragraphs / ~0.84 M chunks (300-tok
+windows, 50-tok overlap) they split into. A second source, **PES**
+(170 950 board-exam questions from HF
+`amu-cai/medical-exams-PES-PL-2007-2024`), is built but deliberately
+held out of the doc corpus (~370-char questions are a different length
+band — would violate the §1 granularity contract); reserved for a
+future short-text medical background. The `segments`/`kw` medical
+granularities are not built.
 
-The `paragraphs` granularity (all four models) is the newest addition
-— 23 dirs (`<model>_pl_mixed50k_paragraphs_mrl<dim>`): 4b × 5 dims,
+The `paragraphs` granularity (all four models) on the general corpus is
+23 dirs (`<model>_pl_mixed50k_paragraphs_mrl<dim>`): 4b × 5 dims,
 8b × 6, te3small × 5, te3large × 7.
 
 Spend: Qwen doc+chunks ~$2.77 via OpenRouter (4b doc $0.92, 8b doc
 $0.46, 4b chunks $0.95, 8b chunks $0.48); Qwen segments ~$1.39
 (4b $0.93, 8b $0.46 — 46.3 M tokens each); OpenAI doc+chunks ~$14 via
 api.openai.com (~95 M tokens; 3-small $0.02/M, 3-large $0.13/M); the
-four `kw` families cost pennies (~0.4 M tokens each). Orchestrators:
+four `kw` families cost pennies (~0.4 M tokens each). The medical
+`med_pl` build (`run_med.sh`) adds Qwen para+chunks (~$1–2) + OpenAI
+te3 para+chunks (~$8). Orchestrators:
 `scripts/run_full.sh` (Qwen doc; chunks with
 `NAME_PREFIX=pl_mixed50k_chunks` + `CORPUS=data/corpus_chunks_512_64.parquet`;
 segments with `NAME_PREFIX=pl_mixed50k_segments` +
 `CORPUS=data/corpus_segments_1024.parquet` + `OUT_ROOT=data/segments_corpus`),
 `scripts/run_kw_fits.sh` (all kw fits), `scripts/run_oai_fits.sh`
 (OpenAI doc+chunks fits), `scripts/run_paragraphs.sh` (all four
-`paragraphs` fits in one launch). The `kw` granularity exists for
+`paragraphs` fits in one launch), `scripts/run_med.sh` (the whole
+`med_pl` family — build/embed/fit/index for all four models ×
+`doc paragraphs chunks`, te3 minus `doc`). The `kw` granularity exists for
 keyword grouping / clustering (Google Ads use case) — whole-doc
 backgrounds misfit on 1–5-word phrases.  The `segments` granularity
 (Qwen models only) exists for internal-linking retrieval —
@@ -135,14 +144,16 @@ Replaced because: (a) the v1 mix used noisier mC4 + sentence-only KLEJ;
 - `data/paragraphs_corpus/chunks_<model>/` — paragraph-level embedding
   output (196 759 rows each, all four models).
 - `data/med_pl/` — raw medical sources: `chpl.parquet` + `chpl.jsonl`
-  (13 514 ChPL drug labels scraped per-ID), `pes.parquet` (170 950 PES
-  board-exam questions, held separate from the doc corpus).
-- `data/corpus_med_pl.parquet` — the assembled ChPL-only medical doc
-  corpus (13 514 docs) built by `build_med_pl_corpus.py`.  Used for the
-  shipped `med_pl` `doc` + `paragraphs` fits.
-- `data/med_corpus/{doc,paragraphs}/chunks_<model>/` — medical
-  embedding output (both Qwen models); `paragraphs` is a 150 000-row
-  random sample (seed 42) of the docs' 1 123 626 paragraphs.
+  (13 514 ChPL drug labels scraped per-ID), `chpl_ocr.parquet` (878
+  OCR'd image-only scans), `pes.parquet` (170 950 PES board-exam
+  questions, held separate from the doc corpus).
+- `data/corpus_med_pl.parquet` — the assembled ChPL medical doc corpus
+  (**14 392 docs** = 13 514 scraped + 878 OCR'd) built by
+  `build_med_pl_corpus.py`.  Used for all shipped `med_pl` fits.
+- `data/med_corpus/{doc,paragraphs,chunks}/chunks_<model>/` — medical
+  embedding output (Qwen for all three grans; te3 for
+  `paragraphs`/`chunks`); `paragraphs`/`chunks` are 150 000-row random
+  samples (seed 42) of the docs' ~1.18 M paragraphs / ~0.84 M chunks.
 
 ## Naming convention
 
@@ -161,8 +172,9 @@ OpenAI `text-embedding-3-small` / `-large`.
 
 The corpus tag slot takes `pl_mixed50k` (general web/wiki/oasst mix)
 **or `med_pl`** (Polish medical / ChPL drug labels — a separate corpus,
-not a granularity).  `med_pl` currently ships Qwen-only, `doc` +
-`paragraphs` only (e.g. `qwen3_8b_med_pl_paragraphs_mrl1024`).
+not a granularity).  `med_pl` ships all four models: Qwen at
+`doc`/`paragraphs`/`chunks`, te3 at `paragraphs`/`chunks` (no te3
+`doc`, input-length cap — e.g. `te3large_med_pl_paragraphs_mrl1024`).
 
 - `_doc_` — one embedding per whole document.
 - `_chunks_` — one embedding per ~512-token chunk with 64-token
@@ -224,14 +236,15 @@ For the **medical `med_pl`** corpus the sources are built by
 no bulk export exists — the registry list/export endpoint is
 access-denied, so it scrapes per-ID) and `build_med_pl_corpus_pes.py`
 (PES questions → `data/med_pl/pes.parquet`, held separate);
-`build_med_pl_corpus_chpl_ocr.py` optionally OCRs the ~787 image-only
-scans.  `build_med_pl_corpus.py` assembles the ChPL-only doc corpus →
-`data/corpus_med_pl.parquet`.  `run_med.sh` then embeds + fits the
-`med_pl` family into `data/med_corpus/{doc,paragraphs}/` and
-`backgrounds/`; it currently ships Qwen `doc` + `paragraphs` (OpenAI +
-finer granularities staged behind it).  The `paragraphs` medical fit
-uses a 150 000-paragraph random sample (seed 42) rather than all
-1 123 626 paragraphs — a representative Σ needs no more.
+`build_med_pl_corpus_chpl_ocr.py` OCRs the 878 image-only scans →
+`data/med_pl/chpl_ocr.parquet` (local Qwen3-VL, Markdown output).
+`build_med_pl_corpus.py` assembles the ChPL doc corpus (scrape + OCR)
+→ `data/corpus_med_pl.parquet` (14 392 docs).  `run_med.sh` then embeds
++ fits the `med_pl` family into `data/med_corpus/{doc,paragraphs,chunks}/`
+and `backgrounds/`; it ships all four models × `doc paragraphs chunks`
+(te3 minus `doc`, input-length cap).  The `paragraphs`/`chunks` medical
+fits use a ~150 000-row random sample (seed 42) rather than all ~1.18 M
+paragraphs / ~0.84 M chunks — a representative Σ needs no more.
 
 OpenAI models run through the **same** embed script against
 `api.openai.com`: add `--base-url https://api.openai.com/v1/embeddings

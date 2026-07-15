@@ -76,12 +76,14 @@ within `med_pl` — `_doc_` for whole-doc vectors, `_paragraphs_` for
 paragraph vectors. Two `med_pl` specifics to know: (a) the medical
 **doc corpus is ChPL-only** — the PES board-exam question set
 (170 950 ~370-char questions) is built but **deliberately held out**,
-because its length band is nowhere near ChPL's ~28 k-char documents and
+because its length band is nowhere near ChPL's ~27 k-char documents and
 mixing it would poison the doc-level Σ exactly the way this section
 warns about; PES is reserved for a future short-text medical
-background. (b) `med_pl` currently ships **Qwen-only, `doc` +
-`paragraphs`** — there is no `med_pl` OpenAI, `segments`, `chunks`, or
-`kw` background yet, so don't reach for one.
+background. (b) `med_pl` ships **`doc` / `paragraphs` / `chunks`** for
+Qwen (4B/8B) and **`paragraphs` / `chunks`** for OpenAI
+(`te3small`/`te3large`) — there is **no te3 `doc`** (docs exceed the
+8 191-token te3 input cap), and no `med_pl` `segments` or `kw`, so
+don't reach for those.
 
 Segments vs chunks — why both exist: chunks are fixed 512-token RAG
 windows cut mid-thought with overlap; segments are variable-length,

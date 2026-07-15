@@ -1,0 +1,50 @@
+{
+  "name": "te3small_med_pl_chunks_mrl768",
+  "created_at": "2026-07-15T14:13:18.414080+00:00",
+  "purpose": "ZCA whitening background for text-embedding-3-small on Polish text (no per-document character cap). Drop into siteFocus / any retrieval pipeline that L2-normalises Qwen3 embeddings.",
+  "language": "pl",
+  "embedding_model": "text-embedding-3-small",
+  "embedding_dim": 768,
+  "max_chars_per_doc": null,
+  "embedding_endpoint": "https://openrouter.ai/api/v1/embeddings",
+  "provider": "openrouter",
+  "build_script": "scripts/fit_zca.py",
+  "diagnostics": {
+    "n_total": 155916,
+    "eps": 1e-06,
+    "dim": 768,
+    "native_dim": 1536,
+    "mrl_truncated": true,
+    "rank_deficient_eigvals": 1,
+    "rank_full_eigvals": 767,
+    "top_ev_ratio_pre": 41.675445556640625,
+    "eigvals_min": 1.2144589334184275e-07,
+    "eigvals_median": 0.00018156410078518093,
+    "eigvals_max": 0.029335174709558487,
+    "eigvals_top5": [
+      0.029335174709558487,
+      0.022050388157367706,
+      0.018867727369070053,
+      0.013871877454221249,
+      0.012609907425940037
+    ],
+    "fit_s": 1.175
+  },
+  "notes": [
+    "Apply: x_white = (x - mu) @ W where x is unit-L2 in `embedding_dim` space.",
+    "Embeddings were L2-renormalised row-wise before mean and covariance.",
+    "ZCA = U · diag(1 / sqrt(S + eps)) · U^T where Σ = U S U^T."
+  ],
+  "corpus_fingerprint_sha256": "b43adef6db85577ddef727691e4f77663312fd16e2e333b9b054b6263d261d86",
+  "sample_size_actual": {
+    "chpl_rpl": 150000,
+    "chpl_rpl_ocr": 5916
+  },
+  "embedding_cost": {
+    "prompt_tokens": 36913455,
+    "total_tokens": 36913455,
+    "cost_usd": 0.0,
+    "n_calls": 4881,
+    "n_429": 0
+  }
+}

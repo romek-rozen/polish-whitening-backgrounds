@@ -86,12 +86,33 @@ flakes, and refactors: you can stop it anywhere and re-launch
 | `build_corpus_chunks.py` | v3 only: read `data/corpus.parquet`, sentence-aware chunk via `lib/chunker.py`, write `data/corpus_chunks_<size>_<overlap>.parquet`.  Output schema is a superset of `corpus.parquet` (adds `doc_sha`, `chunk_idx`) so the rest of the pipeline runs unchanged. |
 | `build_corpus_segments.py` | segments only: read `data/corpus.parquet`, section-level split via `lib/segmenter.py` (1024-token cap, no overlap, heading-first separators), write `data/corpus_segments_<size>.parquet`.  Same schema contract as the chunks parquet (adds `doc_sha`, `segment_idx`). |
 | `build_corpus_keywords.py` | kw only: mine 50 000 keyword-like phrases (1–5-word n-grams, stopwords-pl edge filter, df ≥ 3, stratified word-count mix) → `data/corpus_keywords.parquet`. |
+| `build_corpus_paragraphs.py` | paragraphs only: read a corpus parquet, blank-line split via `lib/paragrapher.py`, write `data/corpus_<tag>_paragraphs.parquet` (adds `doc_sha`, `paragraph_idx`). Used for both `pl_mixed50k` and `med_pl`. |
 | `run_kw_fits.sh` | Fit every `kw` background whose embeddings are complete under `data/kw_corpus/` (all four models) → index.  Refuses partial embeds. |
 | `run_oai_fits.sh` | Fit the OpenAI `doc` + `chunks` backgrounds from `data/chunks_<model>/` and `data/chunks_corpus/chunks_<model>/` → index.  Refuses partial embeds. |
+| `run_paragraphs.sh` | All four models' `paragraphs` fits in one launch (general corpus). |
 | `embed_via_openrouter.py` | The adaptive-batch retry loop. Imports HTTP, tokenizer, persistence from `lib/`. |
 | `fit_zca.py` | Argparse + `lib.zca.fit` + `lib.zca.write_meta`. ~110 lines. |
 | `index_backgrounds.py` | Walk `backgrounds/`, read every `*.meta.json`, write `REGISTRY.md` + `registry.json`. Deterministic — depends only on what's on disk. |
 | `run_full.sh` | Orchestrator: `.env` load, defaults (`MODELS`, `NAME_PREFIX`, `CORPUS`, `OUT_ROOT`, `DIMS_<MODEL>`, `PROVIDER_ORDER`), loops embed + N×fit per model, final index.  For derived corpora (chunks / segments) set `CORPUS` + a dedicated `OUT_ROOT` — a hard guard refuses `OUT_ROOT=data` with a non-default `CORPUS` (it would resume from the doc-level embeddings and poison Σ). |
+
+## Medical (`med_pl`) scripts
+
+A parallel build chain for the Polish medical corpus (ChPL drug
+labels). Same embed/fit/index hydraulics, different corpus. Assemble
+→ embed → fit is one orchestrator, `run_med.sh`.
+
+| Script | Owns |
+|---|---|
+| `build_med_pl_corpus_chpl.py` | Scrape ChPL labels per-ID from the Polish drug registry API (no bulk export — list endpoint is access-denied) → `data/med_pl/chpl.parquet` + `chpl.jsonl` (13 514 docs). |
+| `build_med_pl_corpus_chpl_ocr.py` | OCR the image-only ChPL scans (no text layer) → `data/med_pl/chpl_ocr.parquet`. Local Qwen3-VL (or cloud vision), Markdown output, `max_tokens=4096`. 878 scans. |
+| `build_med_pl_corpus_pes.py` | Build the PES board-exam question set → `data/med_pl/pes.parquet` (170 950 rows). Held separate from the doc corpus (length-band mismatch — see GOTCHAS §1). |
+| `build_med_pl_corpus.py` | Assemble the shipped doc corpus from scrape + OCR → `data/corpus_med_pl.parquet` (14 392 docs). |
+| `run_med.sh` | End-to-end `med_pl` orchestrator: derive granularity → embed (per model) → fit ZCA (full MRL grid) → index, for all four models × `doc paragraphs chunks` (te3 minus `doc`). ⚠️ paid (OpenRouter + OpenAI). `GRANS` / `MODELS_FILTER` / `PARA_SAMPLE` / `CHUNK_SAMPLE` scope the run. |
+
+OCR benchmarking / one-off helpers (not part of the shipped pipeline —
+used while tuning the OCR step): `ocr_bench.py`, `run_ocr_bench.sh`,
+`run_3way_bench.sh` (compare OCR models/prompts), `download_med_pdf.py`,
+`dump_med_txt.py`, `dl_serializer.sh`, `finish_med_doc.sh`.
 
 ## Conventions
 

@@ -46,10 +46,18 @@ layout, don't move artefacts between dirs.
 
 ## Adding a new background
 
-Don't do it in this folder.  Add the model / dim / corpus to
-[`../scripts/run_full.sh`](../scripts/run_full.sh) and let the
-pipeline write the subdir.  That guarantees the four-file layout,
-the meta.json schema, and the registry refresh all line up.
+Don't do it in this folder.  Add the model / dim / corpus to the
+driver and let the pipeline write the subdir.  That guarantees the
+four-file layout, the meta.json schema, and the registry refresh all
+line up.  Which driver depends on the corpus:
+
+- **General (`pl_mixed50k`)** — [`../scripts/run_full.sh`](../scripts/run_full.sh)
+  (doc + chunks), [`../scripts/run_paragraphs.sh`](../scripts/run_paragraphs.sh)
+  (paragraphs), `run_oai_fits.sh` / `run_kw_fits.sh`.
+- **Medical (`med_pl`)** — [`../scripts/run_med.sh`](../scripts/run_med.sh),
+  end-to-end for all four models × `doc paragraphs chunks`
+  (`GRANS` / `MODELS_FILTER` env vars scope the run). ⚠️ it's the
+  paid step (OpenRouter + OpenAI).
 
 If you're doing a one-off fit (e.g. trying a different MRL dim or a
 different `eps`):
@@ -108,7 +116,15 @@ Delete the subdir and refit on a fixed corpus or with a different
 
 ## What's deliberately missing here
 
-- Backgrounds for non-Qwen3 models.  The pipeline is generic — add
+- `med_pl` `doc` for the **OpenAI** models.  te3 caps input at 8 191
+  tokens; 60 % of the ChPL docs exceed it (median ~10.6 k tokens), so
+  a te3 `doc` fit would whiten mostly truncated document heads.  Qwen
+  (longer context) ships `med_pl` `doc`; te3 ships only
+  `paragraphs` + `chunks`, which embed short in-window units.
+- `med_pl` `segments` / `kw` for any model — not built yet.  The PES
+  exam-question source is reserved for a future short-text fit.
+- Backgrounds for models beyond the four shipped (Qwen3-Embedding
+  4B/8B, text-embedding-3 small/large).  The pipeline is generic — add
   the model to
   [`../scripts/lib/tokenizer.py::OPENROUTER_TO_HF_TOKENIZER`](../scripts/lib/tokenizer.py)
   and the embed step picks it up.  We just don't ship them

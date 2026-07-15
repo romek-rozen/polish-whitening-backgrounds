@@ -1,6 +1,6 @@
 {
   "name": "qwen3_4b_med_pl_paragraphs_mrl2560",
-  "created_at": "2026-07-09T06:07:28.330709+00:00",
+  "created_at": "2026-07-15T11:49:35.178354+00:00",
   "purpose": "ZCA whitening background for qwen/qwen3-embedding-4b on Polish text (no per-document character cap). Drop into siteFocus / any retrieval pipeline that L2-normalises Qwen3 embeddings.",
   "language": "pl",
   "embedding_model": "qwen/qwen3-embedding-4b",
@@ -10,40 +10,41 @@
   "provider": "openrouter",
   "build_script": "scripts/fit_zca.py",
   "diagnostics": {
-    "n_total": 150000,
+    "n_total": 156961,
     "eps": 1e-06,
     "dim": 2560,
     "native_dim": 2560,
     "mrl_truncated": false,
-    "rank_deficient_eigvals": 55,
-    "rank_full_eigvals": 2505,
-    "top_ev_ratio_pre": 111.88522338867188,
-    "eigvals_min": 2.3274034088860418e-10,
-    "eigvals_median": 2.233706254628487e-05,
-    "eigvals_max": 0.028406210243701935,
+    "rank_deficient_eigvals": 54,
+    "rank_full_eigvals": 2506,
+    "top_ev_ratio_pre": 112.01175689697266,
+    "eigvals_min": 2.3499571732976676e-10,
+    "eigvals_median": 2.2514630472869612e-05,
+    "eigvals_max": 0.028485791757702827,
     "eigvals_top5": [
-      0.028406210243701935,
-      0.021247386932373047,
-      0.016283269971609116,
-      0.014710508286952972,
-      0.014546837657690048
+      0.028485791757702827,
+      0.021268900483846664,
+      0.016319429501891136,
+      0.014787780120968819,
+      0.014568627811968327
     ],
-    "fit_s": 10.956
+    "fit_s": 11.949
   },
   "notes": [
     "Apply: x_white = (x - mu) @ W where x is unit-L2 in `embedding_dim` space.",
     "Embeddings were L2-renormalised row-wise before mean and covariance.",
     "ZCA = U · diag(1 / sqrt(S + eps)) · U^T where Σ = U S U^T."
   ],
-  "corpus_fingerprint_sha256": "5884b68380b15ffe241463702dafcb1e0b9fae1a19f2bf472cf8a9be19d5a1fd",
+  "corpus_fingerprint_sha256": "6e32063411b1efbfa9fd2c75cd5895cd9950614e692c1ff5913a90b19dbf1d3c",
   "sample_size_actual": {
-    "chpl_rpl": 150000
+    "chpl_rpl": 150000,
+    "chpl_rpl_ocr": 6961
   },
   "embedding_cost": {
-    "prompt_tokens": 23568248,
-    "total_tokens": 23568248,
-    "cost_usd": 0.47136495999999994,
-    "n_calls": 1341,
+    "prompt_tokens": 24484109,
+    "total_tokens": 24484109,
+    "cost_usd": 0.4896821800000001,
+    "n_calls": 1567,
     "n_429": 59
   }
 }

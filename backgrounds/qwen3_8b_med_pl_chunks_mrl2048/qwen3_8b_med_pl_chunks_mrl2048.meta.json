@@ -1,6 +1,6 @@
 {
   "name": "qwen3_8b_med_pl_chunks_mrl2048",
-  "created_at": "2026-07-09T20:20:24.226760+00:00",
+  "created_at": "2026-07-15T13:38:47.668892+00:00",
   "purpose": "ZCA whitening background for qwen/qwen3-embedding-8b on Polish text (no per-document character cap). Drop into siteFocus / any retrieval pipeline that L2-normalises Qwen3 embeddings.",
   "language": "pl",
   "embedding_model": "qwen/qwen3-embedding-8b",
@@ -10,40 +10,41 @@
   "provider": "openrouter",
   "build_script": "scripts/fit_zca.py",
   "diagnostics": {
-    "n_total": 150000,
+    "n_total": 155916,
     "eps": 1e-06,
     "dim": 2048,
     "native_dim": 4096,
     "mrl_truncated": true,
     "rank_deficient_eigvals": 2,
     "rank_full_eigvals": 2046,
-    "top_ev_ratio_pre": 103.58859252929688,
-    "eigvals_min": 3.0477408249039717e-13,
-    "eigvals_median": 3.173731965944171e-05,
-    "eigvals_max": 0.02960655465722084,
+    "top_ev_ratio_pre": 103.2926025390625,
+    "eigvals_min": 3.092797014585952e-13,
+    "eigvals_median": 3.2026022381614894e-05,
+    "eigvals_max": 0.02960825525224209,
     "eigvals_top5": [
-      0.02960655465722084,
-      0.02489546313881874,
-      0.019792696461081505,
-      0.01576920971274376,
-      0.0131804458796978
+      0.02960825525224209,
+      0.024954283609986305,
+      0.019851678982377052,
+      0.015749560669064522,
+      0.01319696381688118
     ],
-    "fit_s": 9.09
+    "fit_s": 8.902
   },
   "notes": [
     "Apply: x_white = (x - mu) @ W where x is unit-L2 in `embedding_dim` space.",
     "Embeddings were L2-renormalised row-wise before mean and covariance.",
     "ZCA = U · diag(1 / sqrt(S + eps)) · U^T where Σ = U S U^T."
   ],
-  "corpus_fingerprint_sha256": "8c83c0887602a9b2f7f25d84b22b149bd37c74454cf83548fafa2eb9746bd504",
+  "corpus_fingerprint_sha256": "b43adef6db85577ddef727691e4f77663312fd16e2e333b9b054b6263d261d86",
   "sample_size_actual": {
-    "chpl_rpl": 150000
+    "chpl_rpl": 150000,
+    "chpl_rpl_ocr": 5916
   },
   "embedding_cost": {
-    "prompt_tokens": 34600640,
-    "total_tokens": 34600640,
-    "cost_usd": 0.3460063999999998,
-    "n_calls": 606,
+    "prompt_tokens": 35959248,
+    "total_tokens": 35959248,
+    "cost_usd": 0.3595924799999998,
+    "n_calls": 799,
     "n_429": 0
   }
 }
