@@ -1,0 +1,82 @@
+{
+  "name": "qwen3_4b_pl_mixed50k_sentences_mrl1024",
+  "created_at": "2026-07-16T01:58:33.429904+00:00",
+  "purpose": "ZCA whitening background for Polish sentence embeddings from the pl_mixed50k corpus; use only when each indexed unit is one sentence.",
+  "language": "pl",
+  "embedding_model": "Qwen/Qwen3-Embedding-4B",
+  "embedding_dim": 1024,
+  "max_chars_per_doc": null,
+  "embedding_endpoint": "http://127.0.0.1:8002/v1/embeddings",
+  "provider": "local_vllm",
+  "build_script": "scripts/build_corpus_sentences.py + scripts/embed_local_sentences.py + scripts/fit_zca.py",
+  "diagnostics": {
+    "n_total": 130000,
+    "eps": 1e-06,
+    "dim": 1024,
+    "native_dim": 2560,
+    "mrl_truncated": true,
+    "rank_deficient_eigvals": 2,
+    "rank_full_eigvals": 1022,
+    "top_ev_ratio_pre": 41.31895065307617,
+    "eigvals_min": 1.76711711930011e-09,
+    "eigvals_median": 0.00021003364236094058,
+    "eigvals_max": 0.03042975813150406,
+    "eigvals_top5": [
+      0.03042975813150406,
+      0.023099707439541817,
+      0.014472541399300098,
+      0.011559856124222279,
+      0.0104514230042696
+    ],
+    "fit_s": 1.251
+  },
+  "notes": [
+    "Unit of fit: one Polish sentence from entropy_lab.features.chunk.split_sentences.",
+    "Sentence sample was drawn uniformly by reservoir sampling with seed 42.",
+    "Native 2560-d vectors were sliced to 1024 and L2-renormalized before storage and fit.",
+    "Apply: x_white = (x - mu) @ W, then L2-normalize for cosine similarity."
+  ],
+  "corpus_fingerprint_sha256": "d51ebfccef6dd1792b80c396d9ac119544871e983d1cc042e951bfb6a5dde01b",
+  "sample_size_actual": {
+    "fineweb": 78478,
+    "wikipedia": 51471,
+    "oasst": 51
+  },
+  "granularity": "sentences",
+  "sentence_population_size": 1129737,
+  "sample_seed": 42,
+  "validation": {
+    "heldout_sentence_count": 8391,
+    "heldout_seed": 43,
+    "heldout_diagnostics": {
+      "raw": {
+        "top_eigenvalue_over_mean_linear": 37.253902896010366,
+        "top_eigenvalue_over_mean_post_l2": 37.25390289601049
+      },
+      "chunks_background": {
+        "top_eigenvalue_over_mean_linear": 20.435270031096785,
+        "top_eigenvalue_over_mean_post_l2": 16.631503914005425
+      },
+      "sentences_background": {
+        "top_eigenvalue_over_mean_linear": 1.9154785857574537,
+        "top_eigenvalue_over_mean_post_l2": 1.9100724996997176
+      }
+    },
+    "website": "rozenberger.com",
+    "website_sentence_count": 6780,
+    "website_metrics": {
+      "raw": {
+        "top_eigenvalue_over_mean": 65.78209360928633,
+        "mean_absolute_cosine": 0.34097704891052316
+      },
+      "chunks_background": {
+        "top_eigenvalue_over_mean": 44.15425279909923,
+        "mean_absolute_cosine": 0.07465363565382238
+      },
+      "sentences_background": {
+        "top_eigenvalue_over_mean": 40.00291018833351,
+        "mean_absolute_cosine": 0.054119756519698456
+      }
+    }
+  }
+}
