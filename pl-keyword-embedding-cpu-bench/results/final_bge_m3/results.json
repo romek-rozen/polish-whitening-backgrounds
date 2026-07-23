@@ -1,0 +1,149 @@
+{
+  "dataset": {
+    "path": "/home/spark001/Spark-testy/polish-whitening-backgrounds/pl-keyword-embedding-cpu-bench/test_dataset/keywords_pl.jsonl",
+    "n_keywords": 150,
+    "n_groups": 15,
+    "groups": [
+      "buty_do_biegania",
+      "dieta_odchudzanie",
+      "fotowoltaika",
+      "hotele_zakopane",
+      "implanty_zebowe",
+      "karma_dla_psa",
+      "kredyt_hipoteczny",
+      "kurs_angielskiego",
+      "laptop_do_gier",
+      "naprawa_pralki",
+      "pozycjonowanie_stron",
+      "przepis_sernik",
+      "tanie_loty",
+      "ubezpieczenie_samochodu",
+      "wynajem_mieszkania_warszawa"
+    ]
+  },
+  "params": {
+    "knn": 10,
+    "resolutions": [
+      0.5,
+      1.0,
+      2.0,
+      4.0
+    ],
+    "batch_size": 32,
+    "threads": 4,
+    "seed": 42
+  },
+  "models": {
+    "bge_m3": {
+      "path": "/home/spark001/models/bge-m3",
+      "note": "568M, 1024d, multilingual generalist, no task prompts",
+      "dim": 1024,
+      "prompt_used": null,
+      "load_s": 1.25,
+      "encode_s": 2.567,
+      "throughput_kw_per_s": 58.4,
+      "latency_ms_per_kw": 17.11,
+      "runs": [
+        {
+          "label": "bge_m3|raw+L2",
+          "resolution": 0.5,
+          "n_clusters": 7,
+          "homogeneity": 0.682927618584075,
+          "completeness": 0.9770997370596401,
+          "v_measure": 0.803948675039164,
+          "ami": 0.7704815153253731,
+          "ari": 0.511502633020962,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|raw+L2",
+          "resolution": 1.0,
+          "n_clusters": 12,
+          "homogeneity": 0.8651395977656737,
+          "completeness": 0.9646134116848045,
+          "v_measure": 0.9121725770354058,
+          "ami": 0.8855173880240347,
+          "ari": 0.7559564106483807,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|raw+L2",
+          "resolution": 2.0,
+          "n_clusters": 15,
+          "homogeneity": 0.9832769499256929,
+          "completeness": 0.9839827528532853,
+          "v_measure": 0.983629724777387,
+          "ami": 0.9773577245472246,
+          "ari": 0.9693177678161283,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|raw+L2",
+          "resolution": 4.0,
+          "n_clusters": 15,
+          "homogeneity": 0.9917505294166316,
+          "completeness": 0.9919951470190701,
+          "v_measure": 0.991872823135834,
+          "ami": 0.9887573852841745,
+          "ari": 0.9850315389862053,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|bg:bgem3_pl_kwmix900k_mrl1024",
+          "resolution": 0.5,
+          "n_clusters": 9,
+          "homogeneity": 0.7544684719563913,
+          "completeness": 0.9795745820242473,
+          "v_measure": 0.8524103670558649,
+          "ami": 0.8194821010237845,
+          "ari": 0.5792756834640453,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|bg:bgem3_pl_kwmix900k_mrl1024",
+          "resolution": 1.0,
+          "n_clusters": 13,
+          "homogeneity": 0.925266257009365,
+          "completeness": 0.9914248969105,
+          "v_measure": 0.9572037744257536,
+          "ami": 0.9430641880801623,
+          "ari": 0.8544955868816612,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|bg:bgem3_pl_kwmix900k_mrl1024",
+          "resolution": 2.0,
+          "n_clusters": 14,
+          "homogeneity": 0.9493733221919546,
+          "completeness": 0.9836995353781514,
+          "v_measure": 0.9662316578326571,
+          "ami": 0.9541990568282923,
+          "ari": 0.899191576992785,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|bg:bgem3_pl_kwmix900k_mrl1024",
+          "resolution": 4.0,
+          "n_clusters": 15,
+          "homogeneity": 0.9835010588332634,
+          "completeness": 0.9842562605068189,
+          "v_measure": 0.983878514751366,
+          "ami": 0.9777028544012487,
+          "ari": 0.9708912156204295,
+          "extra": {}
+        }
+      ]
+    }
+  },
+  "baseline": {
+    "label": "tfidf_lexical",
+    "resolution": NaN,
+    "n_clusters": 83,
+    "homogeneity": 0.9829361316793461,
+    "completeness": 0.6359710789002118,
+    "v_measure": 0.7722727381396072,
+    "ami": 0.4712208661040942,
+    "ari": 0.32805114910430716,
+    "extra": {}
+  }
+}

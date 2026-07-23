@@ -48,6 +48,13 @@ dental implants.
 
 One row per keyword: `{"group": "...", "keyword": "..."}`.
 
+`test_dataset/keywords_pl_finance.jsonl` is a second, **unused** set: 150
+keywords all inside finance, with deliberately close sub-intents (mortgage vs.
+cash vs. consolidation loan; term deposit vs. savings account). It was written
+to test the single-domain case where anisotropy actually dominates, then parked
+— nothing in this repo reads it. Point `--dataset` at it if you want that
+experiment.
+
 ## The `pl_kwmix900k` corpus — a NEW corpus, not the shipped one
 
 > ⚠️ **Do not confuse this with the corpus behind the shipped
@@ -204,24 +211,79 @@ throughput scales with core count without measuring it.
 
 ### `--whiten`
 
-Adds a ZCA-whitened variant of each embedding space. **Read it as an
-indication only.** With 150 keywords and 768–1024 dimensions the covariance is
-massively rank-deficient, so it is shrunk toward the identity before
-inversion. A real fitted background (the parent repo's `kw` granularity,
-fitted on 50 000 phrases) is a different and far better-conditioned object.
+Adds a ZCA-whitened variant of each embedding space, fitted on the 150
+benchmark rows themselves. **This is a diagnostic, not a background.** With 150
+keywords in 768–1024 dimensions the covariance is massively rank-deficient, so
+it is shrunk toward the identity before inversion — and it wrecks the result
+(bge-m3 0.989 → 0.55).
+
+To measure an actual background use `--background <dir>` instead:
+
+```bash
+.venv/bin/python bench.py --models bge_m3 --threads 4 \
+    --background ../backgrounds/bgem3_pl_kwmix900k_mrl1024
+```
+
+### Validating a background
+
+```bash
+.venv/bin/python validate_backgrounds.py --backgrounds ../backgrounds
+```
+
+Applies each shipped `pl_kwmix900k` background to the 150 hand-written test
+keywords — text that appears in **no** fit corpus — and checks the thing a
+background is actually for: does mean pairwise cosine collapse, and is the
+output finite and unit-L2? Fit-time diagnostics are computed on the fit corpus
+and are therefore self-confirming; this is not.
+
+Measured: 0.372 → 0.035 (bge-m3), 0.542 → 0.026 (qwen3-0.6b), 0.374 → 0.033
+(embeddinggemma). Note that the reported `top_ev/mean` anisotropy ratio is
+*not* trustworthy at n=150 < dim — the held-out covariance is rank-deficient by
+construction, so that ratio stays high regardless. Read the cosine column.
+
+### Does it scale? 100 k keywords on 4 CPU threads
+
+```bash
+.venv/bin/python scale_test_cpu.py --chunks work/chunks_kwmix_bgem3 \
+    --background ../backgrounds/bgem3_pl_kwmix900k_mrl1024 --n 100000
+```
+
+| stage | time | peak RSS |
+|---|--:|--:|
+| load fp16 chunks | 0.0 s | 0.41 GB |
+| float32 + L2 | 0.1 s | 0.98 GB |
+| **apply background** | **0.4 s** | 1.29 GB |
+| approximate kNN (pynndescent) | 18.0 s | 1.29 GB |
+| build graph | 1.3 s | 1.44 GB |
+| Leiden | 9.4 s | 1.47 GB |
+| **total** | **29.2 s** | **1.47 GB** |
+
+239 clusters, no singletons, mean degree 21.2. **A 2 GB / 4-core VPS clusters
+100 000 keywords in half a minute**, and applying the background costs 0.4 s of
+that — there is no performance argument against using one.
+
+> ⚠️ **`bench.py` uses brute-force kNN and does not scale.** It materialises the
+> full n×n similarity matrix, which is fine at 150 rows and impossible at 100 k
+> (10^10 comparisons, ~40 GB). `scale_test_cpu.py` uses approximate kNN
+> (`pynndescent`) instead — that, not `bench.py`, is the production path.
 
 ## Findings
 
 Measured on 150 keywords / 15 groups, no prompts, `--threads 4`, Leiden on a
-cosine kNN graph. **All of it in `raw+L2` space — no fitted whitening
-background** (see "What this benchmark does not settle").
+cosine kNN graph, in **`raw+L2` space** (whitened results are the next
+section).
 
 | model | best AMI | #clusters | mixed clusters | misplaced keywords | kw/s |
 |---|--:|--:|--:|--:|--:|
-| **bge-m3** | **0.989** (r=4) | **15** ✓ | **1 / 15** | **2 / 150** | 38.5 |
-| embeddinggemma | 0.924 (r=4) | 18 | 5 / 14 | 14 / 150 | **63.3** |
-| qwen3-0.6b | 0.897 (r=4) | 20 | 11 / 14 | 19 / 150 | 39.6 |
+| **bge-m3** | **0.989** (r=4) | **15** ✓ | **1 / 15** | **2 / 150** | 38–59 |
+| embeddinggemma | 0.924 (r=4) | 18 | 5 / 14 | 14 / 150 | **63–101** |
+| qwen3-0.6b | 0.897 (r=4) | 20 | 11 / 14 | 19 / 150 | 40–70 |
 | tfidf (baseline) | 0.471 | 83 | — | — | — |
+
+Throughput is given as a range because it varies by up to 1.6× between runs on
+the same host and settings — 150 short keywords is too small a workload to time
+precisely. The quality columns are deterministic; the speed column is not. Use
+it for ordering models, not for capacity planning.
 
 ### AMI hides single-group collapse — always inspect the clusters
 
@@ -254,12 +316,6 @@ will fix this: `agencja seo warszawa` really is close to other Warsaw phrases.
 The fix belongs upstream — strip geo modifiers before clustering and restore
 them afterwards. In Google Ads location is campaign targeting anyway, not ad
 group semantics.
-
-### More CPU threads is not faster
-
-4 threads beat 20 for every model (bge-m3 40.4 vs 37.3 kw/s; embeddinggemma
-53.4 vs 35.5). Short keywords in small batches make thread synchronisation cost
-more than the parallelism returns. A small VPS is not penalised here.
 
 ## Does a fitted background help? Measured.
 

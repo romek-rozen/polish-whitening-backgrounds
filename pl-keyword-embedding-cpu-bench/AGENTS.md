@@ -82,11 +82,29 @@ directories mid-experiment risks clobbering someone else's work.
 AGENTS.md                    # this file
 README.md                    # user-facing: what/why/how, limitations
 requirements.txt             # CPU torch + sentence-transformers + igraph/leidenalg
-bench.py                     # the whole benchmark (single file on purpose)
-test_dataset/keywords_pl.jsonl    # 150 keywords, 15 hand-labelled groups
+                             #   + pyarrow (corpus) + pynndescent (scale test)
+
+bench.py                     # the benchmark: encode -> cluster -> score
+inspect_clusters.py          # what a model got wrong, not just how much
+validate_backgrounds.py      # do the shipped backgrounds work on held-out text?
+scale_test_cpu.py            # 100k keywords on a VPS: time + peak RSS per stage
+build_mixed_corpus.py        # the pl_kwmix900k corpus (committed to the parent
+                             #   repo as scripts/build_mixed_kw_corpus.py)
+run_kwmix_backgrounds.sh     # embed (GPU) + fit one background per model
+
+test_dataset/keywords_pl.jsonl          # 150 keywords, 15 hand-labelled groups
+test_dataset/keywords_pl_finance.jsonl  # single-domain variant, UNUSED
 results/                     # results.json (full) + results.md (table)
-.venv/                       # git-ignored
+work/                        # git-ignored: corpora, embedding chunks, fitted
+                             #   backgrounds, logs — see "Work in work/" above
+.venv/  .venv-cuda/          # git-ignored
 ```
+
+Two of these carry a scaling caveat worth stating once: **`bench.py` uses
+brute-force kNN** (full n×n similarity matrix) — correct and exact at 150 rows,
+impossible at 100 k. `scale_test_cpu.py` uses approximate kNN via
+`pynndescent`, which is what production would use. Do not "fix" `bench.py` to
+match; exactness is the right trade at benchmark size.
 
 `test_dataset/` is deliberately **not** named `data/`: the parent repo's
 `.gitignore` ignores `data/` at any depth, which would silently drop the
