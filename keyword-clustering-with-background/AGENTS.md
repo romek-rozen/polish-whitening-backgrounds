@@ -16,7 +16,49 @@ strictly CPU-only, and must not be loosened. This project imports from it
 (`sys.path` bootstrap at the top of each script). That coupling is deliberate;
 the user explicitly said self-containment is not required.
 
+## Method inventory and their equivalences
+
+Five methods, and two of them are the same algorithm in disguise — knowing that
+prevents re-deriving it:
+
+| script | method | equivalent to |
+|---|---|---|
+| `cluster_keywords.py` | kNN + Leiden | — |
+| `sweep_leiden.py` | kNN + Leiden + floor + min size | "sharpened Leiden" (D91) |
+| `cluster_agglomerative.py` | agglomerative, **average** linkage | — |
+| `cluster_bdos_method.py` / `sweep_threshold.py` | threshold + union-find | **single linkage** cut at that threshold |
+| `sweep_umap_hdbscan.py` | UMAP + HDBSCAN | — (reference only) |
+
+**Threshold + union-find is single linkage.** Connecting every pair above a
+cutoff and taking connected components is exactly what single linkage does when
+cut there. That is why it chains: one bridging keyword merges two unrelated
+groups, which put 18 040 of 19 801 keywords in one cluster on raw embeddings.
+`cluster_agglomerative.py --linkage single` reproduces it; `average` (the
+default) is what removes the chaining while keeping the same "merge what is
+similar, stop at a floor" idea.
+
+## UMAP + HDBSCAN is a reference, not a candidate
+
+The user rejects it for production, with a sound reason: projecting a 1024-dim
+embedding to 30 dims discards what the embedding was computed for, and UMAP is
+stochastic. Do not propose it as a recommended method.
+
+Keep running it anyway. It is the only method here whose noise is **not a knob
+we set** — HDBSCAN decides noise from density. That independent ~22 % is what
+lets us say a chosen `min_similarity` is sane: agglomerative at floor 0.5
+produced 20.2 % noise, two points away, from completely different machinery.
+Lose the reference and every noise figure becomes self-justifying.
+
 ## Hard constraints
+
+0. **A threshold's noise share is arithmetic — say so.** `analyze_similarity_distribution.py`
+   shows the 0.8 cutoff discards exactly the keywords whose nearest neighbour is
+   below 0.8: predicted 60.6 % vs measured 60.63 % on bge-m3. Never report a
+   threshold method's noise as a judgement about keyword quality without
+   checking the top-1 distribution first. Median top-1 in whitened space is
+   ~0.75, so 0.8 sits above the median by construction.
+   Corollary: a similarity floor belongs on a **percentile of that list's own
+   top-1 distribution**, not on a constant carried over from another dataset.
 
 1. **Never compare absolute similarity floors across spaces.** Whitening
    rescales every cosine: mean kNN edge similarity drops from ~0.75-0.84 raw to

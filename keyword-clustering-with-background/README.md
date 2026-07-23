@@ -19,6 +19,29 @@ Three things are actually in play:
    every keyword look ~0.5 similar to every other.
 3. **How much noise** — how many keywords genuinely belong to no group.
 
+## Candidate methods vs. reference
+
+**Candidates** work directly on the full embedding — 768 or 1024 dimensions,
+cosine only, nothing discarded:
+
+| method | how it groups | linkage equivalent |
+|---|---|---|
+| threshold + union-find | connected components of the threshold graph | **single** |
+| agglomerative | merge the most similar pairs first, stop at a floor | **average** (default) |
+| kNN + Leiden | modularity on a neighbour graph | — (graph, not linkage) |
+
+**UMAP + HDBSCAN is kept as a reference only, not a candidate.** Projecting a
+1024-dim embedding down to 30 dimensions throws away the information you just
+paid to compute, and UMAP is stochastic — a different seed moves the clusters.
+
+It stays in the comparison for one reason: it is the only method here whose
+noise is **not a knob we set**. HDBSCAN calls a point noise when it lies in no
+dense region, which makes its ~22 % the only independent estimate of how much of
+a keyword list genuinely belongs nowhere. Every other noise figure in this
+project is exactly as large as we chose `min_similarity` and `min_size` to make
+it. Drop the reference and you lose the ability to say whether your chosen noise
+level is sane — so quote it as a yardstick, never as a recommendation.
+
 ## Models and backgrounds
 
 | model | dim | background |
@@ -38,16 +61,78 @@ truth**: the export's URLs were 16 months stale, so scoring against them would
 measure the annotations, not the clustering. What follows is structural —
 cluster counts, sizes, noise — plus clusters printed for inspection.
 
+### A threshold's "noise" is arithmetic, not a quality judgement
+
+The single most important result here. `analyze_similarity_distribution.py`
+measures, for every keyword, its **top-1 similarity** — how close its nearest
+neighbour is. A threshold method cannot cluster a keyword whose best neighbour
+sits below the cutoff, however sensible that keyword is.
+
+In whitened space, with the fixed 0.8 the upstream tool uses:
+
+| model | keywords with a neighbour ≥ 0.8 | ⇒ unclusterable | measured noise at 0.8 |
+|---|--:|--:|--:|
+| bge-m3 | 39.4 % | 60.6 % | **60.63 %** |
+| qwen3-0.6b | 38.5 % | 61.5 % | **61.46 %** |
+| embeddinggemma | 42.0 % | 58.0 % | **57.96 %** |
+
+The prediction and the measurement agree to two decimals, because they are the
+same quantity computed two ways. **That 60 % is not a verdict on the keywords —
+it is where the cutoff falls on the distribution.** Median top-1 similarity in
+whitened space is ~0.75, so 0.8 sits *above the median*: more than half the list
+has no twin that close, by construction.
+
+Coverage by cutoff (share of keywords with any neighbour at or above it):
+
+| cutoff | 0.5 | 0.6 | 0.7 | 0.75 | 0.8 | 0.9 |
+|---|--:|--:|--:|--:|--:|--:|
+| bge-m3, whitened | 86.8 % | 75.6 % | 59.6 % | 49.6 % | 39.4 % | 18.1 % |
+
+**Consequence: a similarity floor should be a percentile of the list's own
+top-1 distribution, not a constant.** A value calibrated on lists of hundreds
+will discard most of a list of twenty thousand — not because the second list is
+worse, but because its distribution is different.
+
+Whitening is also visible here: median similarity of a *random* pair drops to
+0.006–0.009 while top-1 stays at ~0.75. That gap between "random pair" and
+"nearest neighbour" is what makes a threshold meaningful at all; in raw space
+top-1 medians are 0.87–0.92 and everything looks close to everything.
+
+### Two independent methods agree on how much noise there is
+
+This is the most useful thing the comparison produced.
+
+| method | how noise is decided | noise |
+|---|---|--:|
+| UMAP + HDBSCAN | by the algorithm — no threshold to set | **~22 %** |
+| agglomerative, similarity floor 0.5, min 2 | by our chosen floor | **20.2 %** |
+
+Two methods sharing no machinery — one density-based on a projection, one
+merging pairs by cosine in full dimension — land within two points of each
+other. That makes ~20 % a defensible estimate of how much of this list belongs
+to no group, rather than an artefact of one algorithm.
+
+It also means a 0.5 floor is **not** an arbitrary knob on this data: it lands
+where a method with no knob independently puts the boundary.
+
 ### The three families do not agree, at all
 
 | method | clusters | noise | largest | median |
 |---|--:|--:|--:|--:|
 | kNN + Leiden, no cutoff | 101–120 | **0 %** | 417–778 | 152–188 |
 | kNN + Leiden + cutoff | 103–126 | 6–9 % | 447–719 | 124–155 |
-| UMAP + HDBSCAN | 391–454 | **20–26 %** | 275–739 | 21–25 |
-| threshold + union-find | 150–1954 | 7–61 % | **239–18 040** | 2 |
+| **agglomerative, floor 0.5** | **2 883** | 20.2 % | **136** | **3** |
+| UMAP + HDBSCAN *(reference)* | 391–454 | 20–26 % | 275–739 | 21–25 |
+| threshold + union-find (bdos) | 150–1954 | 7–61 % | **239–18 040** | 2 |
 
-(ranges span the three models, raw and whitened)
+(Leiden, HDBSCAN and threshold ranges span the three models, raw and whitened;
+the agglomerative row is bge-m3 + background.)
+
+**Cluster size is where the methods separate, not cluster count.** Leiden's
+largest group holds 400–780 keywords — that is a campaign, not an ad group.
+Union-find's largest holds up to 18 040 of 19 801. Agglomerative with average
+linkage tops out at 136 with a median of 3, which is the size an ad group
+actually is.
 
 **Plain Leiden reports 0 % noise because it is not allowed to report anything
 else.** Every node gets a label whether or not it belongs anywhere. A real
