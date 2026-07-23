@@ -1,0 +1,44 @@
+{
+  "name": "embgemma_pl_kwmix900k_mrl768",
+  "created_at": "2026-07-23T21:08:51.651697+00:00",
+  "purpose": "ZCA whitening background for google/embeddinggemma-300m on Polish text (no per-document character cap). Drop into siteFocus / any retrieval pipeline that L2-normalises Qwen3 embeddings.",
+  "language": "pl",
+  "embedding_model": "google/embeddinggemma-300m",
+  "embedding_dim": 768,
+  "max_chars_per_doc": null,
+  "embedding_endpoint": "https://openrouter.ai/api/v1/embeddings",
+  "provider": "openrouter",
+  "build_script": "scripts/fit_zca.py",
+  "diagnostics": {
+    "n_total": 900000,
+    "eps": 1e-06,
+    "dim": 768,
+    "native_dim": 768,
+    "mrl_truncated": false,
+    "rank_deficient_eigvals": 23,
+    "rank_full_eigvals": 745,
+    "top_ev_ratio_pre": 53.89729690551758,
+    "eigvals_min": 3.4377420354836374e-10,
+    "eigvals_median": 0.00045659858733415604,
+    "eigvals_max": 0.04535515233874321,
+    "eigvals_top5": [
+      0.04535515233874321,
+      0.013744084164500237,
+      0.011484436690807343,
+      0.010330884717404842,
+      0.007941920310258865
+    ],
+    "fit_s": 12.956
+  },
+  "notes": [
+    "Apply: x_white = (x - mu) @ W where x is unit-L2 in `embedding_dim` space.",
+    "Embeddings were L2-renormalised row-wise before mean and covariance.",
+    "ZCA = U · diag(1 / sqrt(S + eps)) · U^T where Σ = U S U^T."
+  ],
+  "corpus_fingerprint_sha256": "8d3f1770e97b9b2a7255f28f7787ce7c5983319e323d827ae47e00ac3cc53952",
+  "sample_size_actual": {
+    "ngram_web": 243935,
+    "wiki_title": 523992,
+    "msmarco_query": 132073
+  }
+}

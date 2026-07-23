@@ -27,7 +27,7 @@ user's main project, not this one.
 
 ## Current state (2026-07-15)
 
-**Shipped on GitHub `main`**: **160 backgrounds** — 103 general
+**Shipped on GitHub `main`**: **164 backgrounds** — 103 general
 (`pl_mixed50k`) + 57 medical (`med_pl`). `registry.json` is the source
 of truth for what is actually committed right now.
 
@@ -55,6 +55,42 @@ No **te3 `doc`**: text-embedding-3 caps input at 8 191 tokens and 60 %
 of the ChPL docs exceed it (median ~10.6 k tokens), so a te3 `doc` fit
 would whiten mostly truncated document heads — Qwen (longer context)
 ships `doc`, te3 ships only `paragraphs` + `chunks`.
+
+Keyword-mix corpus `pl_kwmix900k` (3) — **CPU-servable models**, for
+self-hosting an embedding API on a VPS without a GPU:
+
+| Background dirs | Dim | Status |
+|---|---:|---|
+| `bgem3_pl_kwmix900k_mrl1024/` | 1024 | shipped |
+| `qwen3_06b_pl_kwmix900k_mrl1024/` | 1024 | shipped |
+| `embgemma_pl_kwmix900k_mrl768/` | 768 | shipped |
+
+⚠️ **`pl_kwmix900k` is a different corpus from `pl_mixed50k_kw`** — do
+not treat them as one series or compare their diagnostics. The shipped
+`*_pl_mixed50k_kw_*` backgrounds were fitted on 50 000 web-mined
+n-grams. `pl_kwmix900k` is 900 000 **lowercase** phrases from three
+public sources: Wikipedia PL article titles (58 %), web n-grams (27 %)
+and `clarin-knext/msmarco-pl` queries (15 %), built by
+`scripts/build_mixed_kw_corpus.py`.
+
+Three new models, none of which has an OpenRouter embedding endpoint:
+**BAAI/bge-m3**, **Qwen/Qwen3-Embedding-0.6B**,
+**google/embeddinggemma-300m**. They are embedded locally in-process
+via `scripts/embed_local_st.py` (sentence-transformers), not through an
+API. All are small enough to serve on a CPU-only VPS — that is the
+point of this family.
+
+Everything is lowercase because all three tokenisers are
+case-sensitive; mixing cased Wikipedia titles with lowercase n-grams
+would make the background model a bimodal distribution matching neither
+at inference. Google Ads keyword lists are lowercase by convention.
+
+Selection and validation live in `pl-keyword-embedding-cpu-bench/`
+(CPU-only benchmark, 150 hand-labelled Polish keywords). Headline
+result: the background helps most where the model is weakest —
+Qwen3-0.6B gains +0.075 AMI (0.897 → 0.972), bge-m3 was already at
+0.989 and gains nothing. At low Leiden resolution every model gains
++0.05…+0.15.
 
 `med_pl` is a **separate corpus** (drug labels), not a granularity of
 `pl_mixed50k`. Source = **ChPL** (*Charakterystyka Produktu

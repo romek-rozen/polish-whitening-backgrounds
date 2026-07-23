@@ -1,6 +1,102 @@
 {
   "backgrounds": [
     {
+      "name": "bgem3_pl_kwmix900k_mrl1024",
+      "dim": 1024,
+      "embedding_model": "BAAI/bge-m3",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-23T21:07:55.491281+00:00",
+      "n_fit": 900000,
+      "rank_full": 1023,
+      "rank_deficient": 1,
+      "top_ev_ratio_pre": 25.753080368041992,
+      "eigvals_max": 0.017286326736211777,
+      "eigvals_min": 2.4798147979510077e-09,
+      "fit_s": 19.291,
+      "embedding_cost_usd": null,
+      "embedding_tokens": null,
+      "corpus_fingerprint": "8d3f1770e97b9b2a7255f28f7787ce7c5983319e323d827ae47e00ac3cc53952",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/bgem3_pl_kwmix900k_mrl1024",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
+    },
+    {
+      "name": "embgemma_pl_kwmix900k_mrl768",
+      "dim": 768,
+      "embedding_model": "google/embeddinggemma-300m",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-23T21:08:51.651697+00:00",
+      "n_fit": 900000,
+      "rank_full": 745,
+      "rank_deficient": 23,
+      "top_ev_ratio_pre": 53.89729690551758,
+      "eigvals_max": 0.04535515233874321,
+      "eigvals_min": 3.4377420354836374e-10,
+      "fit_s": 12.956,
+      "embedding_cost_usd": null,
+      "embedding_tokens": null,
+      "corpus_fingerprint": "8d3f1770e97b9b2a7255f28f7787ce7c5983319e323d827ae47e00ac3cc53952",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/embgemma_pl_kwmix900k_mrl768",
+      "W_shape": [
+        768,
+        768
+      ],
+      "mu_shape": [
+        768
+      ],
+      "eigvals_shape": [
+        768
+      ],
+      "size_bytes": 2365824
+    },
+    {
+      "name": "qwen3_06b_pl_kwmix900k_mrl1024",
+      "dim": 1024,
+      "embedding_model": "Qwen/Qwen3-Embedding-0.6B",
+      "provider": "openrouter",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-23T21:08:25.228931+00:00",
+      "n_fit": 900000,
+      "rank_full": 1021,
+      "rank_deficient": 3,
+      "top_ev_ratio_pre": 63.15155029296875,
+      "eigvals_max": 0.026813095435500145,
+      "eigvals_min": 1.0578375508885074e-07,
+      "fit_s": 17.57,
+      "embedding_cost_usd": null,
+      "embedding_tokens": null,
+      "corpus_fingerprint": "8d3f1770e97b9b2a7255f28f7787ce7c5983319e323d827ae47e00ac3cc53952",
+      "build_script": "scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_06b_pl_kwmix900k_mrl1024",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
+    },
+    {
       "name": "qwen3_4b_med_pl_chunks_mrl1024",
       "dim": 1024,
       "embedding_model": "qwen/qwen3-embedding-4b",
@@ -1279,6 +1375,38 @@
         768
       ],
       "size_bytes": 2365824
+    },
+    {
+      "name": "qwen3_4b_pl_mixed50k_sentences_mrl1024",
+      "dim": 1024,
+      "embedding_model": "Qwen/Qwen3-Embedding-4B",
+      "provider": "local_vllm",
+      "max_chars_per_doc": null,
+      "language": "pl",
+      "created_at": "2026-07-16T01:58:33.429904+00:00",
+      "n_fit": 130000,
+      "rank_full": 1022,
+      "rank_deficient": 2,
+      "top_ev_ratio_pre": 41.31895065307617,
+      "eigvals_max": 0.03042975813150406,
+      "eigvals_min": 1.76711711930011e-09,
+      "fit_s": 1.251,
+      "embedding_cost_usd": null,
+      "embedding_tokens": null,
+      "corpus_fingerprint": "d51ebfccef6dd1792b80c396d9ac119544871e983d1cc042e951bfb6a5dde01b",
+      "build_script": "scripts/build_corpus_sentences.py + scripts/embed_local_sentences.py + scripts/fit_zca.py",
+      "path": "backgrounds/qwen3_4b_pl_mixed50k_sentences_mrl1024",
+      "W_shape": [
+        1024,
+        1024
+      ],
+      "mu_shape": [
+        1024
+      ],
+      "eigvals_shape": [
+        1024
+      ],
+      "size_bytes": 4202880
     },
     {
       "name": "qwen3_8b_med_pl_chunks_mrl1024",

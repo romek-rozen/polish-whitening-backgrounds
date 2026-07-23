@@ -1,0 +1,191 @@
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 8154.80it/s]
+
+model=qwen3_06b  r=2.0  knn=10  prompt=None  -> 14 clusters (truth: 15 groups)
+
+[1] n=15  purity=0.53  ~naprawa_pralki  <== MIXED: naprawa_pralki×8, ubezpieczenie_samochodu×6, hotele_zakopane×1
+    ! ubezpieczenie samochodu   (true: ubezpieczenie_samochodu)
+    ! tanie oc dla młodego kierowcy   (true: ubezpieczenie_samochodu)
+    ! ubezpieczenie auta cena   (true: ubezpieczenie_samochodu)
+    ! porównywarka ubezpieczeń komunikacyjnych   (true: ubezpieczenie_samochodu)
+    ! oc na samochód osobowy   (true: ubezpieczenie_samochodu)
+    ! ubezpieczenie pojazdu kalkulator   (true: ubezpieczenie_samochodu)
+    ! nocleg blisko krupówek   (true: hotele_zakopane)
+      pralka nie wiruje co robić
+      wymiana łożysk w pralce cena
+      naprawa pralki samsung
+      pralka nie odpompowuje wody
+      serwis agd naprawa pralek
+      ile kosztuje naprawa pralki
+      awaria pralki kod błędu
+      fachowiec do naprawy pralki
+
+[2] n=12  purity=0.83  ~buty_do_biegania  <== MIXED: buty_do_biegania×10, dieta_odchudzanie×1, tanie_loty×1
+      buty do biegania
+      najlepsze buty do biegania
+      damskie buty do biegania
+      buty do biegania po asfalcie
+      obuwie biegowe męskie
+      buty biegowe nike
+      tanie buty do biegania
+      buty do maratonu
+      buty do biegania w terenie
+      jakie buty do biegania dla początkujących
+    ! ćwiczenia na brzuch w domu   (true: dieta_odchudzanie)
+    ! loty last minute   (true: tanie_loty)
+
+[3] n=11  purity=0.91  ~kredyt_hipoteczny  <== MIXED: kredyt_hipoteczny×10, ubezpieczenie_samochodu×1
+    ! kalkulator oc ac   (true: ubezpieczenie_samochodu)
+      kredyt hipoteczny
+      zdolność kredytowa kalkulator
+      oprocentowanie kredytu hipotecznego
+      kredyt na mieszkanie warunki
+      najlepszy kredyt hipoteczny ranking
+      wkład własny kredyt hipoteczny
+      refinansowanie kredytu hipotecznego
+      rata kredytu hipotecznego kalkulator
+      kredyt hipoteczny bez wkładu własnego
+      doradca kredytowy hipoteczny
+
+[4] n=11  purity=0.91  ~pozycjonowanie_stron  <== MIXED: pozycjonowanie_stron×10, ubezpieczenie_samochodu×1
+    ! polisa oc online   (true: ubezpieczenie_samochodu)
+      pozycjonowanie stron
+      agencja seo warszawa
+      audyt seo strony cena
+      optymalizacja strony pod google
+      link building usługi
+      pozycjonowanie lokalne firmy
+      seo copywriting cennik
+      jak poprawić widoczność w google
+      specjalista seo freelancer
+      pozycjonowanie sklepu internetowego
+
+[5] n=11  purity=0.91  ~laptop_do_gier  <== MIXED: laptop_do_gier×10, ubezpieczenie_samochodu×1
+    ! ac czy warto dokupić   (true: ubezpieczenie_samochodu)
+      laptop do gier
+      najlepszy laptop gamingowy do 5000 zł
+      laptop do gier ranking
+      notebook z rtx do gier
+      tani laptop do grania
+      laptop gamingowy 16 gb ram
+      jaki laptop do gier wybrać
+      laptop do cs2
+      wydajny laptop dla gracza
+      laptop gamingowy z dobrą kartą graficzną
+
+[6] n=11  purity=0.91  ~przepis_sernik  <== MIXED: przepis_sernik×10, dieta_odchudzanie×1
+      przepis na sernik
+      sernik na zimno przepis
+      sernik krakowski przepis babci
+      jak zrobić sernik puszysty
+      sernik bez pieczenia
+      najlepszy przepis na sernik wiedeński
+      sernik z rodzynkami
+      ciasto serowe przepis
+      sernik na spodzie z herbatników
+      domowy sernik przepis prosty
+    ! jak schudnąć szybko   (true: dieta_odchudzanie)
+
+[7] n=11  purity=0.91  ~karma_dla_psa  <== MIXED: karma_dla_psa×10, naprawa_pralki×1
+    ! naprawa pralki   (true: naprawa_pralki)
+      karma dla psa
+      najlepsza sucha karma dla psa
+      karma bezzbożowa dla psa
+      karma dla szczeniaka
+      mokra karma dla psa opinie
+      karma dla psa z alergią
+      ranking karm dla psów
+      czym karmić psa
+      karma dla psa dużej rasy
+      tania karma dla psa hurt
+
+[8] n=11  purity=0.82  ~wynajem_mieszkania_warszawa  <== MIXED: wynajem_mieszkania_warszawa×9, naprawa_pralki×1, dieta_odchudzanie×1
+    ! serwis pralek warszawa   (true: naprawa_pralki)
+    ! catering dietetyczny warszawa   (true: dieta_odchudzanie)
+      wynajem mieszkania warszawa
+      mieszkania na wynajem warszawa tanio
+      2 pokojowe mieszkanie wynajem wola
+      wynajem mieszkania bez pośredników warszawa
+      pokój do wynajęcia warszawa student
+      mieszkanie do wynajęcia praga południe
+      ceny wynajmu mieszkań w warszawie
+      wynajmę mieszkanie umeblowane warszawa
+      apartament na wynajem długoterminowy warszawa
+
+[9] n=11  purity=0.91  ~fotowoltaika  <== MIXED: fotowoltaika×10, wynajem_mieszkania_warszawa×1
+      panele fotowoltaiczne
+      instalacja fotowoltaiczna cena
+      fotowoltaika dla domu opłacalność
+      dotacja mój prąd fotowoltaika
+      ile kosztuje fotowoltaika 10 kw
+      montaż paneli słonecznych
+      magazyn energii do fotowoltaiki
+      fotowoltaika opinie użytkowników
+      najlepsze panele fotowoltaiczne ranking
+      falownik do fotowoltaiki
+    ! kawalerka do wynajęcia mokotów   (true: wynajem_mieszkania_warszawa)
+
+[10] n=11  purity=0.91  ~implanty_zebowe  <== MIXED: implanty_zebowe×10, dieta_odchudzanie×1
+    ! jak zrzucić 10 kg   (true: dieta_odchudzanie)
+      implanty zębowe
+      ile kosztuje implant zęba
+      stomatolog implantolog kraków
+      implanty zębów cena 2026
+      most czy implant zęba
+      klinika implantologii
+      wszczepienie implantu przebieg zabiegu
+      implanty all on 4 cena
+      dentysta implanty opinie
+      odbudowa zęba implantem
+
+[11] n=10  purity=0.90  ~tanie_loty  <== MIXED: tanie_loty×9, ubezpieczenie_samochodu×1
+    ! najtańsze oc 2026   (true: ubezpieczenie_samochodu)
+      tanie bilety lotnicze
+      wyszukiwarka tanich lotów
+      bilety lotnicze do włoch
+      tanie loty z krakowa
+      rezerwacja biletów samolotowych online
+      promocje na loty ryanair
+      kiedy kupować bilety lotnicze najtaniej
+      lot do londynu cena
+      porównywarka lotów
+
+[12] n=10  purity=1.00  ~kurs_angielskiego
+      kurs angielskiego online
+      nauka angielskiego od podstaw
+      angielski dla początkujących
+      korepetycje z angielskiego
+      szkoła językowa angielski
+      kurs angielskiego biznesowego
+      angielski konwersacje online
+      jak szybko nauczyć się angielskiego
+      certyfikat angielskiego b2
+      lekcje angielskiego przez skype
+
+[13] n= 9  purity=1.00  ~hotele_zakopane
+      hotele w zakopanem
+      noclegi zakopane tanio
+      pensjonat zakopane centrum
+      apartamenty zakopane z widokiem na tatry
+      hotel zakopane ze spa
+      gdzie spać w zakopanem
+      kwatery prywatne zakopane
+      domki do wynajęcia zakopane
+      hotel w górach zakopane
+
+[14] n= 6  purity=1.00  ~dieta_odchudzanie
+      dieta odchudzająca
+      jadłospis 1500 kcal
+      dieta ketogeniczna efekty
+      dietetyk online konsultacja
+      zdrowe odchudzanie plan
+      deficyt kaloryczny kalkulator
+
+----------------------------------------------------------------------
+mixed clusters (>1 true group): 11/14
+split groups (spread over >1 cluster): 6/15
+   dieta_odchudzanie: 5 clusters
+   hotele_zakopane: 2 clusters
+   naprawa_pralki: 3 clusters
+   tanie_loty: 2 clusters
+   ubezpieczenie_samochodu: 5 clusters
+   wynajem_mieszkania_warszawa: 2 clusters

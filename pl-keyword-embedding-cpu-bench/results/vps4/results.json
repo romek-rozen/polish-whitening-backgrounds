@@ -1,0 +1,115 @@
+{
+  "dataset": {
+    "path": "/home/spark001/Spark-testy/polish-whitening-backgrounds/pl-keyword-embedding-cpu-bench/dataset/keywords_pl.jsonl",
+    "n_keywords": 150,
+    "n_groups": 15,
+    "groups": [
+      "buty_do_biegania",
+      "dieta_odchudzanie",
+      "fotowoltaika",
+      "hotele_zakopane",
+      "implanty_zebowe",
+      "karma_dla_psa",
+      "kredyt_hipoteczny",
+      "kurs_angielskiego",
+      "laptop_do_gier",
+      "naprawa_pralki",
+      "pozycjonowanie_stron",
+      "przepis_sernik",
+      "tanie_loty",
+      "ubezpieczenie_samochodu",
+      "wynajem_mieszkania_warszawa"
+    ]
+  },
+  "params": {
+    "knn": 10,
+    "resolutions": [
+      2.0
+    ],
+    "batch_size": 32,
+    "threads": 4,
+    "seed": 42
+  },
+  "models": {
+    "embeddinggemma": {
+      "path": "/home/spark001/models/embeddinggemma-300m",
+      "note": "308M, 768d, true Matryoshka, dedicated Clustering prompt",
+      "dim": 768,
+      "prompt_used": "Clustering",
+      "load_s": 2.23,
+      "encode_s": 2.807,
+      "throughput_kw_per_s": 53.4,
+      "latency_ms_per_kw": 18.71,
+      "runs": [
+        {
+          "label": "embeddinggemma|raw+L2",
+          "resolution": 2.0,
+          "n_clusters": 14,
+          "homogeneity": 0.8983295833435555,
+          "completeness": 0.9326479044311399,
+          "v_measure": 0.9151671268357634,
+          "ami": 0.885139182581737,
+          "ari": 0.8026704618456034,
+          "extra": {}
+        }
+      ]
+    },
+    "qwen3_06b": {
+      "path": "/home/spark001/models/qwen3-embedding-0.6b",
+      "note": "0.6B, 1024d, PL-MTEB clustering leader among small models",
+      "dim": 1024,
+      "prompt_used": null,
+      "load_s": 0.62,
+      "encode_s": 3.565,
+      "throughput_kw_per_s": 42.1,
+      "latency_ms_per_kw": 23.76,
+      "runs": [
+        {
+          "label": "qwen3_06b|raw+L2",
+          "resolution": 2.0,
+          "n_clusters": 14,
+          "homogeneity": 0.8686943869600481,
+          "completeness": 0.8966027440193839,
+          "v_measure": 0.8824279577574302,
+          "ami": 0.8405316647454723,
+          "ari": 0.7867012913952192,
+          "extra": {}
+        }
+      ]
+    },
+    "bge_m3": {
+      "path": "/home/spark001/models/bge-m3",
+      "note": "568M, 1024d, multilingual generalist, no task prompts",
+      "dim": 1024,
+      "prompt_used": null,
+      "load_s": 4.05,
+      "encode_s": 3.715,
+      "throughput_kw_per_s": 40.4,
+      "latency_ms_per_kw": 24.77,
+      "runs": [
+        {
+          "label": "bge_m3|raw+L2",
+          "resolution": 2.0,
+          "n_clusters": 15,
+          "homogeneity": 0.9832769499256929,
+          "completeness": 0.9839827528532853,
+          "v_measure": 0.983629724777387,
+          "ami": 0.9773577245472246,
+          "ari": 0.9693177678161283,
+          "extra": {}
+        }
+      ]
+    }
+  },
+  "baseline": {
+    "label": "tfidf_lexical",
+    "resolution": NaN,
+    "n_clusters": 83,
+    "homogeneity": 0.9829361316793461,
+    "completeness": 0.6359710789002118,
+    "v_measure": 0.7722727381396072,
+    "ami": 0.4712208661040942,
+    "ari": 0.32805114910430716,
+    "extra": {}
+  }
+}

@@ -1,0 +1,14 @@
+# CPU-only. Install torch from the CPU index so pip does not pull ~2.5 GB of
+# CUDA wheels this benchmark deliberately does not use:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements.txt
+torch>=2.4
+# embeddinggemma needs a recent transformers (Gemma3 embedding architecture).
+transformers>=4.56
+sentence-transformers>=3.3
+numpy>=1.26
+scikit-learn>=1.4
+# Leiden on a cosine kNN graph -- same backend as production clustering.
+python-igraph>=0.11
+leidenalg>=0.10
+pyarrow>=15

@@ -1,0 +1,189 @@
+Loading weights:   0%|          | 0/314 [00:00<?, ?it/s]Loading weights: 100%|██████████| 314/314 [00:00<00:00, 10626.12it/s]
+
+model=embeddinggemma  r=2.0  knn=10  prompt=None  -> 14 clusters (truth: 15 groups)
+
+[1] n=16  purity=0.56  ~naprawa_pralki  <== MIXED: naprawa_pralki×9, ubezpieczenie_samochodu×7
+    ! ubezpieczenie samochodu   (true: ubezpieczenie_samochodu)
+    ! tanie oc dla młodego kierowcy   (true: ubezpieczenie_samochodu)
+    ! kalkulator oc ac   (true: ubezpieczenie_samochodu)
+    ! ubezpieczenie auta cena   (true: ubezpieczenie_samochodu)
+    ! najtańsze oc 2026   (true: ubezpieczenie_samochodu)
+    ! oc na samochód osobowy   (true: ubezpieczenie_samochodu)
+    ! ubezpieczenie pojazdu kalkulator   (true: ubezpieczenie_samochodu)
+      naprawa pralki
+      pralka nie wiruje co robić
+      wymiana łożysk w pralce cena
+      naprawa pralki samsung
+      pralka nie odpompowuje wody
+      serwis agd naprawa pralek
+      ile kosztuje naprawa pralki
+      awaria pralki kod błędu
+      fachowiec do naprawy pralki
+
+[2] n=12  purity=0.83  ~wynajem_mieszkania_warszawa  <== MIXED: wynajem_mieszkania_warszawa×10, hotele_zakopane×2
+    ! apartamenty zakopane z widokiem na tatry   (true: hotele_zakopane)
+    ! domki do wynajęcia zakopane   (true: hotele_zakopane)
+      wynajem mieszkania warszawa
+      kawalerka do wynajęcia mokotów
+      mieszkania na wynajem warszawa tanio
+      2 pokojowe mieszkanie wynajem wola
+      wynajem mieszkania bez pośredników warszawa
+      pokój do wynajęcia warszawa student
+      mieszkanie do wynajęcia praga południe
+      ceny wynajmu mieszkań w warszawie
+      wynajmę mieszkanie umeblowane warszawa
+      apartament na wynajem długoterminowy warszawa
+
+[3] n=11  purity=0.91  ~kurs_angielskiego  <== MIXED: kurs_angielskiego×10, ubezpieczenie_samochodu×1
+    ! polisa oc online   (true: ubezpieczenie_samochodu)
+      kurs angielskiego online
+      nauka angielskiego od podstaw
+      angielski dla początkujących
+      korepetycje z angielskiego
+      szkoła językowa angielski
+      kurs angielskiego biznesowego
+      angielski konwersacje online
+      jak szybko nauczyć się angielskiego
+      certyfikat angielskiego b2
+      lekcje angielskiego przez skype
+
+[4] n=11  purity=0.82  ~tanie_loty  <== MIXED: tanie_loty×9, ubezpieczenie_samochodu×2
+    ! ac czy warto dokupić   (true: ubezpieczenie_samochodu)
+    ! porównywarka ubezpieczeń komunikacyjnych   (true: ubezpieczenie_samochodu)
+      tanie bilety lotnicze
+      wyszukiwarka tanich lotów
+      bilety lotnicze do włoch
+      tanie loty z krakowa
+      rezerwacja biletów samolotowych online
+      promocje na loty ryanair
+      kiedy kupować bilety lotnicze najtaniej
+      lot do londynu cena
+      porównywarka lotów
+
+[5] n=10  purity=1.00  ~buty_do_biegania
+      buty do biegania
+      najlepsze buty do biegania
+      damskie buty do biegania
+      buty do biegania po asfalcie
+      obuwie biegowe męskie
+      buty biegowe nike
+      tanie buty do biegania
+      buty do maratonu
+      buty do biegania w terenie
+      jakie buty do biegania dla początkujących
+
+[6] n=10  purity=1.00  ~przepis_sernik
+      przepis na sernik
+      sernik na zimno przepis
+      sernik krakowski przepis babci
+      jak zrobić sernik puszysty
+      sernik bez pieczenia
+      najlepszy przepis na sernik wiedeński
+      sernik z rodzynkami
+      ciasto serowe przepis
+      sernik na spodzie z herbatników
+      domowy sernik przepis prosty
+
+[7] n=10  purity=1.00  ~kredyt_hipoteczny
+      kredyt hipoteczny
+      zdolność kredytowa kalkulator
+      oprocentowanie kredytu hipotecznego
+      kredyt na mieszkanie warunki
+      najlepszy kredyt hipoteczny ranking
+      wkład własny kredyt hipoteczny
+      refinansowanie kredytu hipotecznego
+      rata kredytu hipotecznego kalkulator
+      kredyt hipoteczny bez wkładu własnego
+      doradca kredytowy hipoteczny
+
+[8] n=10  purity=0.80  ~hotele_zakopane  <== MIXED: hotele_zakopane×8, naprawa_pralki×1, tanie_loty×1
+      hotele w zakopanem
+      noclegi zakopane tanio
+      pensjonat zakopane centrum
+      hotel zakopane ze spa
+      gdzie spać w zakopanem
+      kwatery prywatne zakopane
+      nocleg blisko krupówek
+      hotel w górach zakopane
+    ! serwis pralek warszawa   (true: naprawa_pralki)
+    ! loty last minute   (true: tanie_loty)
+
+[9] n=10  purity=1.00  ~karma_dla_psa
+      karma dla psa
+      najlepsza sucha karma dla psa
+      karma bezzbożowa dla psa
+      karma dla szczeniaka
+      mokra karma dla psa opinie
+      karma dla psa z alergią
+      ranking karm dla psów
+      czym karmić psa
+      karma dla psa dużej rasy
+      tania karma dla psa hurt
+
+[10] n=10  purity=1.00  ~fotowoltaika
+      panele fotowoltaiczne
+      instalacja fotowoltaiczna cena
+      fotowoltaika dla domu opłacalność
+      dotacja mój prąd fotowoltaika
+      ile kosztuje fotowoltaika 10 kw
+      montaż paneli słonecznych
+      magazyn energii do fotowoltaiki
+      fotowoltaika opinie użytkowników
+      najlepsze panele fotowoltaiczne ranking
+      falownik do fotowoltaiki
+
+[11] n=10  purity=1.00  ~laptop_do_gier
+      laptop do gier
+      najlepszy laptop gamingowy do 5000 zł
+      laptop do gier ranking
+      notebook z rtx do gier
+      tani laptop do grania
+      laptop gamingowy 16 gb ram
+      jaki laptop do gier wybrać
+      laptop do cs2
+      wydajny laptop dla gracza
+      laptop gamingowy z dobrą kartą graficzną
+
+[12] n=10  purity=1.00  ~dieta_odchudzanie
+      dieta odchudzająca
+      jak schudnąć szybko
+      jadłospis 1500 kcal
+      dieta ketogeniczna efekty
+      catering dietetyczny warszawa
+      ćwiczenia na brzuch w domu
+      jak zrzucić 10 kg
+      dietetyk online konsultacja
+      zdrowe odchudzanie plan
+      deficyt kaloryczny kalkulator
+
+[13] n=10  purity=1.00  ~pozycjonowanie_stron
+      pozycjonowanie stron
+      agencja seo warszawa
+      audyt seo strony cena
+      optymalizacja strony pod google
+      link building usługi
+      pozycjonowanie lokalne firmy
+      seo copywriting cennik
+      jak poprawić widoczność w google
+      specjalista seo freelancer
+      pozycjonowanie sklepu internetowego
+
+[14] n=10  purity=1.00  ~implanty_zebowe
+      implanty zębowe
+      ile kosztuje implant zęba
+      stomatolog implantolog kraków
+      implanty zębów cena 2026
+      most czy implant zęba
+      klinika implantologii
+      wszczepienie implantu przebieg zabiegu
+      implanty all on 4 cena
+      dentysta implanty opinie
+      odbudowa zęba implantem
+
+----------------------------------------------------------------------
+mixed clusters (>1 true group): 5/14
+split groups (spread over >1 cluster): 4/15
+   hotele_zakopane: 2 clusters
+   naprawa_pralki: 2 clusters
+   tanie_loty: 2 clusters
+   ubezpieczenie_samochodu: 3 clusters

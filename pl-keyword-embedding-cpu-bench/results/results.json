@@ -1,0 +1,349 @@
+{
+  "dataset": {
+    "path": "/home/spark001/Spark-testy/polish-whitening-backgrounds/pl-keyword-embedding-cpu-bench/dataset/keywords_pl.jsonl",
+    "n_keywords": 150,
+    "n_groups": 15,
+    "groups": [
+      "buty_do_biegania",
+      "dieta_odchudzanie",
+      "fotowoltaika",
+      "hotele_zakopane",
+      "implanty_zebowe",
+      "karma_dla_psa",
+      "kredyt_hipoteczny",
+      "kurs_angielskiego",
+      "laptop_do_gier",
+      "naprawa_pralki",
+      "pozycjonowanie_stron",
+      "przepis_sernik",
+      "tanie_loty",
+      "ubezpieczenie_samochodu",
+      "wynajem_mieszkania_warszawa"
+    ]
+  },
+  "params": {
+    "knn": 10,
+    "resolutions": [
+      0.5,
+      1.0,
+      2.0,
+      4.0
+    ],
+    "batch_size": 32,
+    "threads": "torch-default",
+    "seed": 42
+  },
+  "models": {
+    "embeddinggemma": {
+      "path": "/home/spark001/models/embeddinggemma-300m",
+      "note": "308M, 768d, true Matryoshka, dedicated Clustering prompt",
+      "dim": 768,
+      "prompt_used": "Clustering",
+      "load_s": 2.88,
+      "encode_s": 4.231,
+      "throughput_kw_per_s": 35.5,
+      "latency_ms_per_kw": 28.21,
+      "runs": [
+        {
+          "label": "embeddinggemma|raw+L2",
+          "resolution": 0.5,
+          "n_clusters": 6,
+          "homogeneity": 0.5350385633660457,
+          "completeness": 0.8741981938098282,
+          "v_measure": 0.6638057705087654,
+          "ami": 0.6158112603329294,
+          "ari": 0.32159011244252506,
+          "extra": {}
+        },
+        {
+          "label": "embeddinggemma|raw+L2",
+          "resolution": 1.0,
+          "n_clusters": 10,
+          "homogeneity": 0.7504058917516664,
+          "completeness": 0.8955996667910091,
+          "v_measure": 0.8165990243748963,
+          "ami": 0.7702674741685003,
+          "ari": 0.5969526178095023,
+          "extra": {}
+        },
+        {
+          "label": "embeddinggemma|raw+L2",
+          "resolution": 2.0,
+          "n_clusters": 14,
+          "homogeneity": 0.8983295833435555,
+          "completeness": 0.9326479044311399,
+          "v_measure": 0.9151671268357634,
+          "ami": 0.885139182581737,
+          "ari": 0.8026704618456034,
+          "extra": {}
+        },
+        {
+          "label": "embeddinggemma|raw+L2",
+          "resolution": 4.0,
+          "n_clusters": 16,
+          "homogeneity": 0.917019427034819,
+          "completeness": 0.903705319581422,
+          "v_measure": 0.9103136933916174,
+          "ami": 0.8742509653285574,
+          "ari": 0.8207554735744647,
+          "extra": {}
+        },
+        {
+          "label": "embeddinggemma|ZCA(batch)",
+          "resolution": 0.5,
+          "n_clusters": 5,
+          "homogeneity": 0.5049283959966132,
+          "completeness": 0.9224866912931593,
+          "v_measure": 0.6526338827583376,
+          "ami": 0.6121659401430118,
+          "ari": 0.29410772152829756,
+          "extra": {}
+        },
+        {
+          "label": "embeddinggemma|ZCA(batch)",
+          "resolution": 1.0,
+          "n_clusters": 11,
+          "homogeneity": 0.782905447959715,
+          "completeness": 0.9032496338586149,
+          "v_measure": 0.8387829409533736,
+          "ami": 0.7940203446004329,
+          "ari": 0.6372538749376699,
+          "extra": {}
+        },
+        {
+          "label": "embeddinggemma|ZCA(batch)",
+          "resolution": 2.0,
+          "n_clusters": 14,
+          "homogeneity": 0.8252083474817221,
+          "completeness": 0.8658576722644232,
+          "v_measure": 0.8450444518907126,
+          "ami": 0.7909137943951025,
+          "ari": 0.6711892112791172,
+          "extra": {}
+        },
+        {
+          "label": "embeddinggemma|ZCA(batch)",
+          "resolution": 4.0,
+          "n_clusters": 24,
+          "homogeneity": 0.9251084723352421,
+          "completeness": 0.804502615631087,
+          "v_measure": 0.8606006181554613,
+          "ami": 0.7820692839354653,
+          "ari": 0.6732313229073597,
+          "extra": {}
+        }
+      ]
+    },
+    "qwen3_06b": {
+      "path": "/home/spark001/models/qwen3-embedding-0.6b",
+      "note": "0.6B, 1024d, PL-MTEB clustering leader among small models",
+      "dim": 1024,
+      "prompt_used": null,
+      "load_s": 0.55,
+      "encode_s": 5.509,
+      "throughput_kw_per_s": 27.2,
+      "latency_ms_per_kw": 36.73,
+      "runs": [
+        {
+          "label": "qwen3_06b|raw+L2",
+          "resolution": 0.5,
+          "n_clusters": 7,
+          "homogeneity": 0.5700833399902792,
+          "completeness": 0.9468331013321892,
+          "v_measure": 0.7116723929107481,
+          "ami": 0.661702079571307,
+          "ari": 0.3063082635058364,
+          "extra": {}
+        },
+        {
+          "label": "qwen3_06b|raw+L2",
+          "resolution": 1.0,
+          "n_clusters": 11,
+          "homogeneity": 0.7669391137444188,
+          "completeness": 0.8924235312503802,
+          "v_measure": 0.8249366275736266,
+          "ami": 0.7762951111904509,
+          "ari": 0.6185981039231834,
+          "extra": {}
+        },
+        {
+          "label": "qwen3_06b|raw+L2",
+          "resolution": 2.0,
+          "n_clusters": 14,
+          "homogeneity": 0.8686943869600481,
+          "completeness": 0.8966027440193839,
+          "v_measure": 0.8824279577574302,
+          "ami": 0.8405316647454723,
+          "ari": 0.7867012913952192,
+          "extra": {}
+        },
+        {
+          "label": "qwen3_06b|raw+L2",
+          "resolution": 4.0,
+          "n_clusters": 20,
+          "homogeneity": 0.9534868161717273,
+          "completeness": 0.9058740744440349,
+          "v_measure": 0.929070834450121,
+          "ami": 0.8972189035904676,
+          "ari": 0.8762568100279045,
+          "extra": {}
+        },
+        {
+          "label": "qwen3_06b|ZCA(batch)",
+          "resolution": 0.5,
+          "n_clusters": 7,
+          "homogeneity": 0.4351247013308,
+          "completeness": 0.6431224285085939,
+          "v_measure": 0.5190618122315298,
+          "ami": 0.43795339498251806,
+          "ari": 0.22935769248490992,
+          "extra": {}
+        },
+        {
+          "label": "qwen3_06b|ZCA(batch)",
+          "resolution": 1.0,
+          "n_clusters": 12,
+          "homogeneity": 0.6136320681028156,
+          "completeness": 0.6873123288162115,
+          "v_measure": 0.6483857215771615,
+          "ami": 0.543191398950933,
+          "ari": 0.3678007385872554,
+          "extra": {}
+        },
+        {
+          "label": "qwen3_06b|ZCA(batch)",
+          "resolution": 2.0,
+          "n_clusters": 17,
+          "homogeneity": 0.7253088954671889,
+          "completeness": 0.7079167811423559,
+          "v_measure": 0.7165073121320193,
+          "ami": 0.5978142776336804,
+          "ari": 0.426831477436198,
+          "extra": {}
+        },
+        {
+          "label": "qwen3_06b|ZCA(batch)",
+          "resolution": 4.0,
+          "n_clusters": 26,
+          "homogeneity": 0.8280067486343344,
+          "completeness": 0.700978306188095,
+          "v_measure": 0.7592157507875898,
+          "ami": 0.6139306873958478,
+          "ari": 0.4572953390078105,
+          "extra": {}
+        }
+      ]
+    },
+    "bge_m3": {
+      "path": "/home/spark001/models/bge-m3",
+      "note": "568M, 1024d, multilingual generalist, no task prompts",
+      "dim": 1024,
+      "prompt_used": null,
+      "load_s": 3.92,
+      "encode_s": 4.016,
+      "throughput_kw_per_s": 37.3,
+      "latency_ms_per_kw": 26.77,
+      "runs": [
+        {
+          "label": "bge_m3|raw+L2",
+          "resolution": 0.5,
+          "n_clusters": 7,
+          "homogeneity": 0.682927618584075,
+          "completeness": 0.9770997370596401,
+          "v_measure": 0.803948675039164,
+          "ami": 0.7704815153253731,
+          "ari": 0.511502633020962,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|raw+L2",
+          "resolution": 1.0,
+          "n_clusters": 12,
+          "homogeneity": 0.8651395977656737,
+          "completeness": 0.9646134116848045,
+          "v_measure": 0.9121725770354058,
+          "ami": 0.8855173880240347,
+          "ari": 0.7559564106483807,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|raw+L2",
+          "resolution": 2.0,
+          "n_clusters": 15,
+          "homogeneity": 0.9832769499256929,
+          "completeness": 0.9839827528532853,
+          "v_measure": 0.983629724777387,
+          "ami": 0.9773577245472246,
+          "ari": 0.9693177678161283,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|raw+L2",
+          "resolution": 4.0,
+          "n_clusters": 15,
+          "homogeneity": 0.9917505294166316,
+          "completeness": 0.9919951470190701,
+          "v_measure": 0.991872823135834,
+          "ami": 0.9887573852841745,
+          "ari": 0.9850315389862053,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|ZCA(batch)",
+          "resolution": 0.5,
+          "n_clusters": 5,
+          "homogeneity": 0.3042905512068425,
+          "completeness": 0.5855244671202353,
+          "v_measure": 0.40046427442881755,
+          "ami": 0.33377168943843893,
+          "ari": 0.140495276705566,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|ZCA(batch)",
+          "resolution": 1.0,
+          "n_clusters": 12,
+          "homogeneity": 0.5726096646070015,
+          "completeness": 0.6409194531233701,
+          "v_measure": 0.6048419732679493,
+          "ami": 0.4864115513969821,
+          "ari": 0.34205848310803433,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|ZCA(batch)",
+          "resolution": 2.0,
+          "n_clusters": 14,
+          "homogeneity": 0.6515844880110538,
+          "completeness": 0.682079846047886,
+          "v_measure": 0.6664835160091025,
+          "ami": 0.5497007055929789,
+          "ari": 0.4229111999767615,
+          "extra": {}
+        },
+        {
+          "label": "bge_m3|ZCA(batch)",
+          "resolution": 4.0,
+          "n_clusters": 27,
+          "homogeneity": 0.7802837872144165,
+          "completeness": 0.6592738210818332,
+          "v_measure": 0.7146927235984414,
+          "ami": 0.5410453096274068,
+          "ari": 0.40413520432964967,
+          "extra": {}
+        }
+      ]
+    }
+  },
+  "baseline": {
+    "label": "tfidf_lexical",
+    "resolution": NaN,
+    "n_clusters": 83,
+    "homogeneity": 0.9829361316793461,
+    "completeness": 0.6359710789002118,
+    "v_measure": 0.7722727381396072,
+    "ami": 0.4712208661040942,
+    "ari": 0.32805114910430716,
+    "extra": {}
+  }
+}

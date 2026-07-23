@@ -13,8 +13,10 @@ ZCA SVD — clone, load, apply.
 
 License: [CC-BY-4.0](LICENSE)
 
-> **Status (2026-07-15):** **160 backgrounds shipped** — **103 general**
-> (`pl_mixed50k`) + **57 medical** (`med_pl`). The medical set covers
+> **Status (2026-07-23):** **164 backgrounds shipped** — **104 general**
+> (`pl_mixed50k`) + **57 medical** (`med_pl`) + **3 keyword-mix**
+> (`pl_kwmix900k`, for CPU-servable models — see
+> [CPU-servable models](#cpu-servable-models-pl_kwmix900k)). The medical set covers
 > all four models: Qwen (4B/8B) at `doc` / `paragraphs` / `chunks`, and
 > OpenAI (`te3small`/`te3large`) at `paragraphs` / `chunks` (no te3
 > `doc` — the docs exceed the 8 191-token te3 input cap; see
@@ -109,12 +111,15 @@ cd polish-whitening-backgrounds
 from loader import load_background, list_backgrounds
 
 print(list_backgrounds())
-# Returns all 160 names: 103 general (pl_mixed50k) + 57 medical (med_pl). E.g.:
+# Returns all 164 names: 104 general (pl_mixed50k) + 57 medical (med_pl)
+#                        + 3 keyword-mix (pl_kwmix900k). E.g.:
 # ['qwen3_4b_pl_mixed50k_doc_mrl2560',  … , 'qwen3_4b_pl_mixed50k_segments_mrl512',
 #  'qwen3_8b_pl_mixed50k_doc_mrl4096',  … , 'qwen3_8b_pl_mixed50k_segments_mrl512',
 #  'te3small_pl_mixed50k_doc_mrl1536',  … , 'te3small_pl_mixed50k_kw_mrl256',
 #  'te3large_pl_mixed50k_doc_mrl3072',  … , 'te3large_pl_mixed50k_kw_mrl256',
-#  'qwen3_4b_med_pl_doc_mrl2560',       … , 'te3large_med_pl_chunks_mrl256']
+#  'qwen3_4b_med_pl_doc_mrl2560',       … , 'te3large_med_pl_chunks_mrl256',
+#  'bgem3_pl_kwmix900k_mrl1024', 'qwen3_06b_pl_kwmix900k_mrl1024',
+#  'embgemma_pl_kwmix900k_mrl768']
 
 # Pair the background with the model + granularity + slice dim you actually use.
 bg = load_background("qwen3_4b_pl_mixed50k_doc_mrl1024")
@@ -261,6 +266,77 @@ specific niche; it works for keywords from any industry. If you want
 the fit distribution even closer to your accounts, mix your own
 exported keywords into `data/corpus_keywords.parquet` and refit
 (`bash scripts/run_kw_fits.sh`, minutes of work, cents of spend).
+
+## CPU-servable models (`pl_kwmix900k`)
+
+Three backgrounds for models small enough to **self-host an embedding API on a
+VPS without a GPU** — the case where paying OpenRouter or OpenAI per call is not
+an option:
+
+| Background | Model | Dim |
+|---|---|---:|
+| `bgem3_pl_kwmix900k_mrl1024` | `BAAI/bge-m3` | 1024 |
+| `qwen3_06b_pl_kwmix900k_mrl1024` | `Qwen/Qwen3-Embedding-0.6B` | 1024 |
+| `embgemma_pl_kwmix900k_mrl768` | `google/embeddinggemma-300m` | 768 |
+
+None of these has an OpenRouter embedding endpoint, so they are embedded
+in-process with `sentence-transformers` (`scripts/embed_local_st.py`) rather
+than through an API.
+
+> ⚠️ **`pl_kwmix900k` is a different corpus from `pl_mixed50k_kw`.** Do not
+> treat them as one series or compare their diagnostics. The `kw` backgrounds
+> were fitted on 50 000 web-mined n-grams; this family on 900 000 phrases from
+> three sources.
+
+### The corpus
+
+900 000 **lowercase** Polish phrases (1–5 words, mix 10/35/30/15/10 by word
+count), deduped, from three public and reproducible sources
+(`scripts/build_mixed_kw_corpus.py`):
+
+| Source | Phrases | Share | Contributes |
+|---|--:|--:|---|
+| Wikipedia PL article titles | 523 992 | 58 % | native Polish noun phrases — the canonical keyword *shape* |
+| Web n-grams | 243 935 | 27 % | natural language, long tail, realistic noise |
+| `clarin-knext/msmarco-pl` queries | 132 073 | 15 % | real search-query shape and intent |
+
+Web n-grams alone are a weak stand-in for keywords: the miner only rejects
+phrases that *start or end* with a stopword, so grammatical fragments survive
+(`operacja rozpoczęła`, `europejskiego i rady z dnia`). Wikipedia titles fix
+that for free — a title is by construction a noun phrase with no finite verb.
+
+**Everything is lowercased, including titles.** All three tokenisers are
+case-sensitive, so mixing cased titles with lowercase n-grams would make the
+background model a bimodal distribution matching neither at inference. Google
+Ads keyword lists are lowercase by convention — match your inference input.
+
+Known limits: `msmarco-pl` is machine-translated from English (translationese,
+Anglo-skewed topics), and Wikipedia titles are encyclopedic entities rather than
+commercial intent. There is no public dataset of real Polish ad keywords with
+volumes — that data is proprietary — so these are reproducible substitutes.
+
+### Validated, not just fitted
+
+`pl-keyword-embedding-cpu-bench/validate_backgrounds.py` applies each background
+to 150 hand-written Polish keywords that appear in **no** fit corpus:
+
+| Background | mean pairwise cosine before | after |
+|---|--:|--:|
+| `bgem3_pl_kwmix900k_mrl1024` | 0.372 | **0.035** |
+| `qwen3_06b_pl_kwmix900k_mrl1024` | 0.542 | **0.026** |
+| `embgemma_pl_kwmix900k_mrl768` | 0.374 | **0.033** |
+
+That collapse is the whole point: raw Qwen3-0.6B rates every unrelated Polish
+phrase as 54 % similar to every other. Whitening removes that shared baseline.
+
+On the clustering benchmark (`pl-keyword-embedding-cpu-bench/`, Leiden on a
+cosine kNN graph) the payoff tracks how damaged the raw space was —
+Qwen3-0.6B gains **+0.075 AMI** (0.897 → 0.972) and its cluster count corrects
+from 20 to 16 against a true 15; bge-m3 was already at 0.989 and gains nothing.
+At low resolution every model gains +0.05…+0.15.
+
+Do not use a model's eigenvalue ratio to decide whether to whiten:
+embeddinggemma has the strongest anisotropy at fit time and benefits least.
 
 ## Medical backgrounds (`med_pl`)
 
@@ -430,7 +506,7 @@ diagnostic eigenvalues.
 ## Repo layout
 
 ```
-backgrounds/<name>/                   # one dir per shipped background (103 pl_mixed50k + 57 med_pl)
+backgrounds/<name>/                   # one dir per shipped background (104 pl_mixed50k + 57 med_pl + 3 pl_kwmix900k)
   W_A.npy           # (dim, dim) float32  — apply: (x - mu) @ W
   mu_A.npy          # (dim,)    float32
   eigvals_A.npy     # (dim,)    float32   — diagnostic, not needed at apply time

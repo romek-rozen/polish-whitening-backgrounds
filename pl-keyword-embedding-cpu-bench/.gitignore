@@ -1,0 +1,5 @@
+.venv/
+.venv-cuda/
+__pycache__/
+*.pyc
+work/

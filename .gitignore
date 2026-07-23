@@ -4,3 +4,4 @@ __pycache__/
 .env
 data/
 scratch_logs/
+.venv-cuda/
