@@ -124,6 +124,33 @@ lekkiego czyszczenia, 10 podziału. Z małych grup 70-75% miało realną wartoś
 To nie jest „wrzuć i gotowe" — to jest materiał roboczy dobrej jakości.
 Planuj ręczny przegląd, zwłaszcza największych grup.
 
+## ⚠️ Kryterium oceny było stronnicze — przeczytaj przed użyciem wniosków
+
+Klastry oceniano pytaniem **„czy da się do tego napisać jedną reklamę"**. To
+kryterium konkretnego zastosowania (Google Ads), a nie miara jakości
+klastrowania semantycznego. Cel docelowy — „ktoś wrzuca milion fraz i chce
+klastry semantyczne" — jest szerszy.
+
+**Skutek: część rzeczy zaraportowanych jako błędy nimi nie jest.**
+`agencja seo warszawa` naprawdę jest semantycznie bliska innym frazom
+z Warszawą. Nazwiska naprawdę są do siebie podobne jako byty. Model miał rację;
+to ramka „grupa reklam" mówi, że się pomylił. Sekcja „Odsiej to PRZED
+klastrowaniem" jest więc poradą **dla zastosowania reklamowego**, a nie
+uniwersalną poprawką jakości.
+
+**Lepsze kryterium prawdopodobnie istnieje i jest już w projekcie
+`clustering_Louvain_Leiden_UmapHdbscan`: `entity_coherence_lift`** — średni
+Jaccard zbiorów encji centralnych wewnątrz klastra, jako lift nad losowym
+podziałem tej samej wielkości. Jest niezależny od kategorii i nie nagradza
+metody za optymalizowanie tego samego kosinusa, na którym klastruje.
+
+Otwarty kierunek (nieprzetestowany): **sprowadzić frazy do encji** i klastrować
+po nich, zamiast po surowych embeddingach fraz. Wtedy `agencja seo warszawa`
+i `catering dietetyczny warszawa` mają różne encje centralne (SEO vs catering)
+mimo wspólnej lokalizacji — czyli problem, który dziś „naprawialiśmy"
+filtrowaniem geo, rozwiązuje się sam. Koszt: trzeba ekstrakcji encji na milionie
+fraz, a krótka fraza daje mało kontekstu.
+
 ## Czego ten eksperyment NIE sprawdził
 
 - **Miliona fraz.** Wszystko powyżej 100 tys. to ekstrapolacja z pomiaru na
@@ -133,3 +160,6 @@ Planuj ręczny przegląd, zwłaszcza największych grup.
   z ograniczeń pamięci, nie z pomiaru.
 - **Jakości względem prawdziwych grup reklam.** Nie mieliśmy aktualnego ground
   truth; ocena jest ekspercka, nie ilościowa.
+- **Jakości semantycznej jako takiej.** Oceniano przydatność reklamową — patrz
+  ostrzeżenie wyżej. Metryka encyjna nie została policzona.
+- **Klastrowania po encjach** zamiast po frazach.
