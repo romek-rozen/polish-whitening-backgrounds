@@ -209,6 +209,41 @@ hand-labelled benchmark next door it is worth **+0.075 AMI for qwen3-0.6b** and
 Clustering is cheap. Embedding is the real cost (~40 kw/s per CPU core-set), and
 it is paid once — hence the embedding cache.
 
+## Recommendation
+
+Everything above points at one configuration:
+
+**bge-m3 + `bgem3_pl_kwmix900k_mrl1024` + agglomerative (average linkage) +
+similarity floor 0.526 + min cluster size 2.**
+
+Four independent reasons for bge-m3:
+
+1. best on the labelled benchmark next door (AMI 0.989 vs 0.924 / 0.897),
+2. fewest oversized groups — 2 clusters of 100+ keywords, against 9 for
+   qwen3-0.6b and 16 for embeddinggemma,
+3. smallest largest-cluster under agglomerative (136, against 462 and 523),
+4. it does not glue by syntactic frame; embeddinggemma merges "kurs/opis/typy
+   <term>" phrases into one group regardless of topic.
+
+The floor comes from `sweep_agglomerative_fine.py` (flattest statistics in a
+±0.010 window): 0.526 for bge-m3, 0.502 for qwen3-0.6b, 0.506 for embeddinggemma.
+
+### Two things to do to the data first
+
+Neither is a model defect — both are phrase types that belong in separate
+campaigns, and no embedding will separate them for you:
+
+- **Person names.** All three models pull them into a single "people" bucket.
+  They are similar as a *kind of entity*, not as an intent.
+- **Geographic modifiers.** A city name drags a phrase into the local cluster
+  regardless of industry. In Google Ads location is campaign targeting anyway.
+
+### Do not delete the noise
+
+~20 % of the list lands outside every cluster, and qualitative review found
+commercial offer keywords in there. "Noise" here means "no close twin", not
+"worthless" — see the top-1 distribution section above.
+
 ## Scripts
 
 | script | what it does |

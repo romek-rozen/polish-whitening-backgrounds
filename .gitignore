@@ -5,3 +5,4 @@ __pycache__/
 data/
 scratch_logs/
 .venv-cuda/
+.agents/sessions/

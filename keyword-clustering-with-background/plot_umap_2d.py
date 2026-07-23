@@ -65,7 +65,7 @@ def cached_npy(path: Path, build) -> np.ndarray:
 
 
 def scatter(points: np.ndarray, labels: np.ndarray, title: str, out: Path,
-            noise_color: str = "#9AA0A6") -> None:
+            dpi: int = 200, noise_color: str = "#9AA0A6") -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -73,13 +73,13 @@ def scatter(points: np.ndarray, labels: np.ndarray, title: str, out: Path,
     is_noise = labels < 0
     real = labels[~is_noise]
 
-    figure, axes = plt.subplots(figsize=(9, 9), dpi=130)
+    figure, axes = plt.subplots(figsize=(16, 16))
     axes.set_facecolor("#FFFFFF")
 
     # Noise first so every labelled point is drawn on top of it.
     if is_noise.any():
-        axes.scatter(points[is_noise, 0], points[is_noise, 1], s=2.0,
-                     c=noise_color, alpha=0.18, linewidths=0, zorder=1,
+        axes.scatter(points[is_noise, 0], points[is_noise, 1], s=1.5,
+                     c=noise_color, alpha=0.25, linewidths=0, zorder=1,
                      rasterized=True)
 
     if real.size:
@@ -91,22 +91,24 @@ def scatter(points: np.ndarray, labels: np.ndarray, title: str, out: Path,
         shuffled = rng.permutation(len(unique))
         slot = {int(c): int(s) for c, s in zip(unique, shuffled)}
         colors = np.array([slot[int(c)] for c in real]) / max(len(unique) - 1, 1)
-        axes.scatter(points[~is_noise, 0], points[~is_noise, 1], s=2.6,
+        axes.scatter(points[~is_noise, 0], points[~is_noise, 1], s=2.5,
                      c=colors, cmap="turbo", alpha=0.75, linewidths=0,
                      zorder=2, rasterized=True)
 
-    axes.set_title(title, fontsize=11, color="#202124", pad=12)
+    axes.set_title(title, fontsize=16, color="#202124", pad=16)
     axes.set_xticks([])
     axes.set_yticks([])
     for spine in axes.spines.values():
         spine.set_color("#DADCE0")
-    axes.text(0.5, -0.02,
+    axes.text(0.5, -0.015,
               "UMAP 2D is visualisation only — clusters were computed in the "
-              "full embedding space",
+              "full embedding space\n"
+              "Colours repeat across clusters — they separate cluster from "
+              "noise, they do not identify a cluster",
               transform=axes.transAxes, ha="center", va="top",
-              fontsize=8, color="#5F6368")
+              fontsize=11, color="#5F6368", linespacing=1.5)
     out.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(out, bbox_inches="tight", facecolor="white")
+    figure.savefig(out, dpi=dpi, bbox_inches="tight", facecolor="white")
     plt.close(figure)
     logger.info("  wrote %s", out.name)
 
@@ -125,6 +127,8 @@ def main() -> int:
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--neighbors", type=int, default=15,
                     help="UMAP n_neighbors for the 2D layout.")
+    ap.add_argument("--dpi", type=int, default=200,
+                    help="Output resolution; 16x16in at 200 dpi is ~3200px.")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
 
@@ -175,7 +179,7 @@ def main() -> int:
                          f"{int(np.unique(labels[~is_noise]).size)} clusters · "
                          f"{100.0 * is_noise.sum() / len(labels):.1f}% noise")
                 scatter(points, labels, title,
-                        args.out / f"{stem}__{method}.png")
+                        args.out / f"{stem}__{method}.png", dpi=args.dpi)
     return 0
 
 

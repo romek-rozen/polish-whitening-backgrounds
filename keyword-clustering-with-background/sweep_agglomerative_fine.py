@@ -165,7 +165,13 @@ def write_report(path: Path, rows: list[Result],
         "Dla każdego modelu drzewo linkage policzono raz w przestrzeni z właściwym "
         "backgroundem. Następnie wykonano 501 cięć od 0.350 do 0.850. Kolejne "
         "identyczne podziały są zapisane jako jeden zakres stabilności.", "",
-        "## Rekomendowane stabilne zakresy", "",
+        "**Wynik deduplikacji:** żadne dwa sąsiednie cięcia odległe o 0.001 nie dały "
+        "identycznego finalnego podziału — ani dla żadnego modelu, ani dla `min_size=2/3`. "
+        "Dlatego wszystkie dokładne `stable_range_width` wynoszą 0 na tej siatce. Krok "
+        "0.0005 zwiększyłby rozdzielczość, ale nie zmieniłby faktu, że na 19 801 fraz "
+        "wysokości scaleń są bardzo gęste. Odporności należy tu szukać w płaskim przebiegu "
+        "statystyk, a nie w identyczności całego wektora etykiet.", "",
+        "## Rekomendowane progi na płaskich odcinkach krzywej", "",
         "| model | rekomendowany próg / zakres | szerokość | klastry | szum | największy |",
         "|---|---:|---:|---:|---:|---:|",
     ]
