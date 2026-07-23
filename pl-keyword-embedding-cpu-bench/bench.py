@@ -134,7 +134,8 @@ def l2_normalize(values: np.ndarray) -> np.ndarray:
 
 
 def encode(
-    spec: ModelSpec, texts: list[str], batch_size: int, use_prompts: bool = False
+    spec: ModelSpec, texts: list[str], batch_size: int, use_prompts: bool = False,
+    device: str = "cpu",
 ) -> EncodeResult:
     """Load the model on CPU and embed every keyword, timing both steps.
 
@@ -146,11 +147,17 @@ def encode(
     Note the trade-off when reading a no-prompt embeddinggemma number: that
     model was *trained* with its prompts, so raw text is off-distribution for
     it and the score is a floor, not its ceiling. Run both ways to see the gap.
+
+    ``device`` defaults to "cpu" and the benchmark never overrides it — the
+    whole point is measuring what a GPU-less VPS can serve. Callers that only
+    need vectors (cluster inspection, not timing) may pass "cuda"; the vectors
+    are identical, only the wall-clock differs, so a timing number produced
+    that way is meaningless.
     """
     from sentence_transformers import SentenceTransformer
 
     started = time.perf_counter()
-    model = SentenceTransformer(str(spec.path), device="cpu")
+    model = SentenceTransformer(str(spec.path), device=device)
     load_s = time.perf_counter() - started
 
     kwargs: dict = {"batch_size": batch_size, "show_progress_bar": False}
